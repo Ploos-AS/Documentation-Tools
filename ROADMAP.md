@@ -25,17 +25,17 @@
 
 The remaining reproducibility and richer media work is intentionally carried forward rather than blocking the useful M1 layout baseline.
 
-## M2 — AmigaGuide quality — qualification pending
+## M2 — AmigaGuide quality — native qualification pending
 
 - [x] Richer deterministic node generation and navigation.
 - [x] Internal Markdown links and cross references.
-- [ ] Command/API/ARexx reference conventions.
+- [x] Command/API/ARexx reference conventions.
 - [x] AmigaGuide escaping and Latin-1 charset policy in the generator.
 - [x] Dependency-free structural AmigaGuide validator.
 - [x] GitHub Actions structural qualification.
 - [ ] Native AmigaGuide viewer/runtime qualification.
 
-Structural qualification requires no proprietary AmigaOS assets. Native viewer/runtime qualification remains a separate final M2 gate.
+Structural qualification requires no proprietary AmigaOS assets. Native viewer/runtime qualification remains the final M2 gate.
 
 ## M3 — Consumer integration
 
