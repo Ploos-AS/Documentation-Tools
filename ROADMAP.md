@@ -12,7 +12,7 @@
 - [x] Add example documentation.
 - [x] Add CI smoke tests.
 
-## M1 — PDF quality — qualification pending
+## M1 — PDF quality — PASS
 
 - [x] Ploos-AS title page and typography baseline.
 - [x] Project/version metadata injection.
@@ -25,13 +25,17 @@
 
 The remaining reproducibility and richer media work is intentionally carried forward rather than blocking the useful M1 layout baseline.
 
-## M2 — AmigaGuide quality
+## M2 — AmigaGuide quality — qualification pending
 
-- Richer node generation and navigation.
-- Explicit links and cross references.
-- Command/API/ARexx reference conventions.
-- AmigaGuide escaping and charset policy.
-- Native AmigaGuide validation/qualification.
+- [x] Richer deterministic node generation and navigation.
+- [x] Internal Markdown links and cross references.
+- [ ] Command/API/ARexx reference conventions.
+- [x] AmigaGuide escaping and Latin-1 charset policy in the generator.
+- [x] Dependency-free structural AmigaGuide validator.
+- [x] GitHub Actions structural qualification.
+- [ ] Native AmigaGuide viewer/runtime qualification.
+
+Structural qualification requires no proprietary AmigaOS assets. Native viewer/runtime qualification remains a separate final M2 gate.
 
 ## M3 — Consumer integration
 
