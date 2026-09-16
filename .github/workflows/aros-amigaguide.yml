@@ -92,12 +92,8 @@ jobs:
         run: |
           set -euo pipefail
           aros_root='${{ steps.runtime.outputs.aros_root }}'
-          bootstrap='${{ steps.runtime.outputs.bootstrap }}'
           cp dist/ExampleAmiga.guide "$aros_root/ExampleAmiga.guide"
 
-          # UNIX-hosted AROS maps the host-side AROS root into the guest.
-          # Launch a native command through S/Startup-Sequence, then terminate
-          # the hosted instance so the runner gets a deterministic result.
           cp "$aros_root/S/Startup-Sequence" "$RUNNER_TEMP/Startup-Sequence.original"
           cat > "$aros_root/S/Startup-Sequence" <<'AROS'
           C:MultiView SYS:ExampleAmiga.guide
@@ -106,8 +102,13 @@ jobs:
           C:Shutdown
           AROS
 
+          # AROSBootstrap resolves boot/linux/AROSBootstrap.conf relative to
+          # the runtime root, so launch it from that directory.
           set +e
-          timeout 30s xvfb-run -a "$bootstrap" >dist/aros-runtime.log 2>&1
+          (
+            cd "$aros_root"
+            timeout 30s xvfb-run -a ./boot/linux/AROSBootstrap
+          ) >dist/aros-runtime.log 2>&1
           rc=$?
           set -e
           cp "$RUNNER_TEMP/Startup-Sequence.original" "$aros_root/S/Startup-Sequence"
