@@ -36,16 +36,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            'https://api.github.com/repos/deadwood2/AROS/releases/latest' \
-            -o "$RUNNER_TEMP/aros-release.json"
+          curl -fsSL --retry 3 -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' 'https://api.github.com/repos/deadwood2/AROS/releases/latest' -o "$RUNNER_TEMP/aros-release.json"
           python3 - "$GITHUB_OUTPUT" "$RUNNER_TEMP/aros-release.json" <<'PY'
-          import json
-          import sys
+          import json, sys
           output_path, release_path = sys.argv[1:3]
-          with open(release_path, "r", encoding="utf-8") as source:
+          with open(release_path, encoding="utf-8") as source:
               data = json.load(source)
           assets = [a for a in data.get("assets", []) if "linux-x86_64-system" in a.get("name", "")]
           if len(assets) != 1:
@@ -55,14 +50,10 @@ jobs:
           if not digest.startswith("sha256:"):
               raise SystemExit("GitHub release asset has no SHA-256 digest")
           with open(output_path, "a", encoding="utf-8") as output:
-              output.write(f"tag={data['tag_name']}\n")
-              output.write(f"url={asset['browser_download_url']}\n")
-              output.write(f"sha256={digest.removeprefix('sha256:')}\n")
-          print(f"Resolved AROS {data['tag_name']}: {asset['name']}")
+              output.write(f"tag={data['tag_name']}\nurl={asset['browser_download_url']}\nsha256={digest.removeprefix('sha256:')}\n")
           PY
 
       - name: Download and verify AROS hosted runtime
-        shell: bash
         run: |
           set -euo pipefail
           mkdir -p .aros/root
@@ -70,71 +61,73 @@ jobs:
           printf '%s  %s\n' '${{ steps.aros.outputs.sha256 }}' '.aros/aros-system.tar.gz' | sha256sum -c -
           tar -xzf .aros/aros-system.tar.gz -C .aros/root
 
-      - name: Inspect AROS runtime and native viewer
+      - name: Inspect AROS runtime and startup candidates
         id: runtime
         shell: bash
         run: |
           set -euo pipefail
           find .aros/root -type f \( -iname 'AROSBootstrap' -o -iname 'MultiView' -o -iname 'AmigaGuide*' \) -print | tee dist/aros-runtime-inventory.txt
+          find .aros/root -type f \( -iname 'Startup-Sequence' -o -iname 'AROSBootstrap.conf' \) -print | tee dist/aros-startup-inventory.txt
           bootstrap="$(find .aros/root -type f -iname AROSBootstrap | head -n1)"
-          multiview="$(find .aros/root -type f -iname MultiView | head -n1)"
           test -n "$bootstrap"
-          test -n "$multiview"
           chmod +x "$bootstrap"
           aros_root="$(cd "$(dirname "$bootstrap")/../.." && pwd)"
-          echo "bootstrap=$bootstrap" >> "$GITHUB_OUTPUT"
-          echo "multiview=$multiview" >> "$GITHUB_OUTPUT"
           echo "aros_root=$aros_root" >> "$GITHUB_OUTPUT"
 
-      - name: Execute generated guide in hosted AROS
+      - name: Diagnose hosted AROS startup execution
         shell: bash
         run: |
           set -euo pipefail
           aros_root='${{ steps.runtime.outputs.aros_root }}'
           cp dist/ExampleAmiga.guide "$aros_root/ExampleAmiga.guide"
-
           cp "$aros_root/S/Startup-Sequence" "$RUNNER_TEMP/Startup-Sequence.original"
+
+          # Put unmistakable markers before and after each operation. The host
+          # inspects T: after the bounded run, even if hosted AROS cannot shut
+          # itself down cleanly.
           cat > "$aros_root/S/Startup-Sequence" <<'AROS'
+          Echo "DT_STARTUP_ENTERED" >T:dt-startup-entered.txt
+          C:Avail >T:dt-avail.txt
+          Echo "DT_BEFORE_MULTIVIEW" >T:dt-before-multiview.txt
           Run >NIL: <NIL: Utilities:MultiView SYS:ExampleAmiga.guide
           Wait 5
-          C:Avail >T:documentation-tools-avail.txt
-          Echo "MultiView launch returned control to Startup-Sequence" >T:documentation-tools-multiview.txt
-          C:Shutdown
+          Echo "DT_AFTER_MULTIVIEW" >T:dt-after-multiview.txt
           AROS
 
           set +e
           (
             cd "$aros_root"
-            timeout 30s xvfb-run -a ./boot/linux/AROSBootstrap
+            timeout 15s xvfb-run -a ./boot/linux/AROSBootstrap
           ) >dist/aros-runtime.log 2>&1
           rc=$?
           set -e
           cp "$RUNNER_TEMP/Startup-Sequence.original" "$aros_root/S/Startup-Sequence"
 
+          echo "bootstrap_rc=$rc" | tee dist/aros-startup-diagnostic.txt
+          for marker in dt-startup-entered.txt dt-avail.txt dt-before-multiview.txt dt-after-multiview.txt; do
+            if [ -s "$aros_root/T/$marker" ]; then
+              echo "$marker=present" | tee -a dist/aros-startup-diagnostic.txt
+              cp "$aros_root/T/$marker" "dist/$marker"
+            else
+              echo "$marker=missing" | tee -a dist/aros-startup-diagnostic.txt
+            fi
+          done
           cat dist/aros-runtime.log
-          if [ "$rc" -eq 124 ]; then
-            echo 'Hosted AROS did not terminate after asynchronous MultiView launch.'
-            exit 1
-          fi
-          if [ "$rc" -ne 0 ]; then
-            echo "Hosted AROS exited with status $rc"
-            exit "$rc"
-          fi
-          test -s "$aros_root/T/documentation-tools-avail.txt"
-          test -s "$aros_root/T/documentation-tools-multiview.txt"
-          cp "$aros_root/T/documentation-tools-avail.txt" dist/aros-native-command-evidence.txt
-          cp "$aros_root/T/documentation-tools-multiview.txt" dist/aros-multiview-evidence.txt
-          echo 'AROS Startup-Sequence continued after asynchronous native MultiView launch of generated AmigaGuide.' | tee dist/aros-amigaguide-execution.txt
 
-      - name: Record AROS qualification probe
+          # This diagnostic gate succeeds only if the Startup-Sequence we
+          # replaced really executed through the asynchronous MultiView probe.
+          test -s "$aros_root/T/dt-startup-entered.txt"
+          test -s "$aros_root/T/dt-avail.txt"
+          test -s "$aros_root/T/dt-before-multiview.txt"
+          test -s "$aros_root/T/dt-after-multiview.txt"
+
+      - name: Record AROS diagnostic probe
         run: |
           {
             echo "source_commit=${GITHUB_SHA}"
             echo "aros_release=${{ steps.aros.outputs.tag }}"
-            echo "aros_asset=${{ steps.aros.outputs.url }}"
-            echo "aros_asset_sha256=${{ steps.aros.outputs.sha256 }}"
             echo "fixture_sha256=$(cut -d' ' -f1 dist/ExampleAmiga.guide.sha256)"
-            echo 'result=generated AmigaGuide launched asynchronously in native MultiView on hosted AROS'
+            echo 'result=hosted AROS executed replaced Startup-Sequence through asynchronous MultiView probe'
           } | tee dist/aros-amigaguide-probe.txt
 
       - name: Upload probe evidence
@@ -146,9 +139,9 @@ jobs:
             dist/ExampleAmiga.guide
             dist/ExampleAmiga.guide.sha256
             dist/aros-runtime-inventory.txt
+            dist/aros-startup-inventory.txt
             dist/aros-runtime.log
-            dist/aros-native-command-evidence.txt
-            dist/aros-multiview-evidence.txt
-            dist/aros-amigaguide-execution.txt
+            dist/aros-startup-diagnostic.txt
+            dist/dt-*.txt
             dist/aros-amigaguide-probe.txt
           if-no-files-found: warn
