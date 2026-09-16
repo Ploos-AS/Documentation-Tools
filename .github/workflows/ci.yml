@@ -45,6 +45,27 @@ jobs:
           sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/ExampleAmiga-rebuild.pdf ExampleAmiga 0.0.0-m1
           test -s dist/ExampleAmiga-rebuild.pdf
 
+      - name: Qualify reusable action
+        id: reusable
+        uses: ./
+        with:
+          source: examples/ExampleAmigaManual.md
+          project: ActionFixture
+          version: 0.0.0-m3
+          amiga: 'true'
+          output-dir: dist/action
+
+      - name: Verify reusable action outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test '${{ steps.reusable.outputs.pdf }}' = 'dist/action/ActionFixture-0.0.0-m3-User-Manual.pdf'
+          test '${{ steps.reusable.outputs.guide }}' = 'dist/action/ActionFixture-0.0.0-m3.guide'
+          test -s '${{ steps.reusable.outputs.pdf }}'
+          test -s '${{ steps.reusable.outputs.guide }}'
+          pdfinfo '${{ steps.reusable.outputs.pdf }}' | grep -q '^Pages:'
+          python3 tools/validate-amigaguide.py '${{ steps.reusable.outputs.guide }}'
+
       - name: Upload documentation artifacts
         uses: actions/upload-artifact@v4
         with:
