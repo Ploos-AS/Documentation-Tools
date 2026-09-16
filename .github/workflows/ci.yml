@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  m0:
+  documentation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,15 +29,23 @@ jobs:
         run: python3 -m py_compile tools/*.py
 
       - name: Install PDF dependencies
-        run: sudo apt-get update && sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended
-
-      - name: Build PDF fixture
         run: |
-          sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/ExampleAmiga-User-Manual.pdf
-          test -s dist/ExampleAmiga-User-Manual.pdf
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended texlive-latex-extra
 
-      - name: Upload M0 documentation artifacts
+      - name: Build M1 PDF fixture
+        run: |
+          sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/ExampleAmiga-0.0.0-m1-User-Manual.pdf ExampleAmiga 0.0.0-m1
+          test -s dist/ExampleAmiga-0.0.0-m1-User-Manual.pdf
+          pdfinfo dist/ExampleAmiga-0.0.0-m1-User-Manual.pdf | grep -q '^Pages:'
+
+      - name: Rebuild PDF for reproducibility smoke test
+        run: |
+          sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/ExampleAmiga-rebuild.pdf ExampleAmiga 0.0.0-m1
+          test -s dist/ExampleAmiga-rebuild.pdf
+
+      - name: Upload documentation artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: m0-documentation
+          name: documentation
           path: dist/
