@@ -36,12 +36,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          release_json="$(curl -fsSL --retry 3 'https://api.github.com/repos/deadwood2/AROS/releases/latest')"
-          python3 - "$GITHUB_OUTPUT" <<'PY' <<<"$release_json"
+          curl -fsSL --retry 3 \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            'https://api.github.com/repos/deadwood2/AROS/releases/latest' \
+            -o "$RUNNER_TEMP/aros-release.json"
+          python3 - "$GITHUB_OUTPUT" "$RUNNER_TEMP/aros-release.json" <<'PY'
           import json
           import sys
 
-          data = json.load(sys.stdin)
+          output_path, release_path = sys.argv[1:3]
+          with open(release_path, "r", encoding="utf-8") as source:
+              data = json.load(source)
           assets = [a for a in data.get("assets", []) if "linux-x86_64-system" in a.get("name", "")]
           if len(assets) != 1:
               raise SystemExit(f"expected exactly one linux-x86_64-system asset, found {len(assets)}")
@@ -49,7 +55,7 @@ jobs:
           digest = asset.get("digest", "")
           if not digest.startswith("sha256:"):
               raise SystemExit("GitHub release asset has no SHA-256 digest")
-          with open(sys.argv[1], "a", encoding="utf-8") as output:
+          with open(output_path, "a", encoding="utf-8") as output:
               output.write(f"tag={data['tag_name']}\n")
               output.write(f"url={asset['browser_download_url']}\n")
               output.write(f"sha256={digest.removeprefix('sha256:')}\n")
