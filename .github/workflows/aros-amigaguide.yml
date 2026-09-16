@@ -1,0 +1,90 @@
+name: AROS AmigaGuide qualification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  aros-native-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build qualification fixture
+        run: |
+          mkdir -p dist
+          python3 tools/validate-docs.py examples/ExampleAmigaManual.md
+          python3 tools/build-amigaguide.py examples/ExampleAmigaManual.md dist/ExampleAmiga.guide
+          python3 tools/validate-amigaguide.py dist/ExampleAmiga.guide
+          sha256sum dist/ExampleAmiga.guide | tee dist/ExampleAmiga.guide.sha256
+
+      - name: Install probe dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl unzip xz-utils xvfb
+
+      - name: Resolve current official AROS Linux hosted nightly
+        id: nightly
+        shell: bash
+        run: |
+          set -euo pipefail
+          page="$(curl -fsSL 'https://www.aros.org/cgi-bin/files?lang=en&type=nightly2')"
+          url="$(printf '%s' "$page" | grep -Eo 'https?://[^"'"'"' <>]+linux-x86_64[^"'"'"' <>]+' | head -n1 || true)"
+          if [ -z "$url" ]; then
+            href="$(printf '%s' "$page" | grep -Eo 'href="[^"]+"' | cut -d'"' -f2 | grep 'linux-x86_64' | head -n1 || true)"
+            if [ -n "$href" ]; then
+              url="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.urljoin("https://www.aros.org/cgi-bin/files?lang=en&type=nightly2", sys.argv[1]))' "$href")"
+            fi
+          fi
+          test -n "$url" || { echo 'Official nightly page did not expose a linux-x86_64 hosted archive'; exit 1; }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          printf 'Resolved official AROS nightly: %s\n' "$url"
+
+      - name: Download and inspect AROS hosted runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .aros
+          curl -fL --retry 3 '${{ steps.nightly.outputs.url }}' -o .aros/nightly
+          file .aros/nightly
+          if unzip -t .aros/nightly >/dev/null 2>&1; then
+            unzip -q .aros/nightly -d .aros/root
+          elif tar -tf .aros/nightly >/dev/null 2>&1; then
+            mkdir -p .aros/root
+            tar -xf .aros/nightly -C .aros/root
+          else
+            echo 'Unsupported AROS nightly archive format'
+            exit 1
+          fi
+          find .aros/root -type f \( -iname 'AROSBootstrap' -o -iname 'MultiView' -o -iname 'AmigaGuide*' \) -print | tee dist/aros-runtime-inventory.txt
+          grep -qi 'AROSBootstrap' dist/aros-runtime-inventory.txt
+          if ! grep -Eqi '/(MultiView|AmigaGuide[^/]*)$' dist/aros-runtime-inventory.txt; then
+            echo 'AROS runtime found, but no native AmigaGuide-capable viewer was discovered.'
+            exit 1
+          fi
+
+      - name: Record AROS qualification probe
+        run: |
+          {
+            echo "source_commit=${GITHUB_SHA}"
+            echo "aros_nightly=${{ steps.nightly.outputs.url }}"
+            echo "fixture_sha256=$(cut -d' ' -f1 dist/ExampleAmiga.guide.sha256)"
+            echo 'result=AROS runtime and native viewer discovered; interactive viewer execution is the next gate'
+          } | tee dist/aros-amigaguide-probe.txt
+
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aros-amigaguide-probe
+          path: |
+            dist/ExampleAmiga.guide
+            dist/ExampleAmiga.guide.sha256
+            dist/aros-runtime-inventory.txt
+            dist/aros-amigaguide-probe.txt
+          if-no-files-found: warn
