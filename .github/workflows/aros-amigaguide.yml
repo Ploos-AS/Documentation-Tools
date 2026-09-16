@@ -26,10 +26,10 @@ jobs:
           python3 tools/validate-amigaguide.py dist/ExampleAmiga.guide
           sha256sum dist/ExampleAmiga.guide | tee dist/ExampleAmiga.guide.sha256
 
-      - name: Install probe dependencies
+      - name: Install qualification dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl xz-utils xvfb
+          sudo apt-get install -y curl xz-utils xvfb x11-utils imagemagick
 
       - name: Resolve current AROS ABIv11 Linux hosted GitHub release
         id: aros
@@ -61,7 +61,7 @@ jobs:
           printf '%s  %s\n' '${{ steps.aros.outputs.sha256 }}' '.aros/aros-system.tar.gz' | sha256sum -c -
           tar -xzf .aros/aros-system.tar.gz -C .aros/root
 
-      - name: Inspect hosted AROS boot configuration
+      - name: Locate hosted AROS runtime
         id: runtime
         shell: bash
         run: |
@@ -71,75 +71,110 @@ jobs:
           chmod +x "$bootstrap"
           aros_root="$(cd "$(dirname "$bootstrap")/../.." && pwd)"
           echo "aros_root=$aros_root" >> "$GITHUB_OUTPUT"
-
-          find "$aros_root" -type f \( -iname 'AROSBootstrap' -o -iname 'MultiView' -o -iname 'AmigaGuide*' \) -print | tee dist/aros-runtime-inventory.txt
-          find "$aros_root" -type f \( -iname 'Startup-Sequence' -o -iname 'AROSBootstrap.conf' -o -iname '*startup*' \) -print | tee dist/aros-startup-inventory.txt
-
-          conf="$aros_root/boot/linux/AROSBootstrap.conf"
-          test -s "$conf"
-          cp "$conf" dist/AROSBootstrap.conf
+          test -x "$aros_root/Utilities/MultiView"
+          test -s "$aros_root/Libs/amigaguide.library"
+          test -s "$aros_root/Classes/DataTypes/amigaguide.datatype"
+          cp "$aros_root/boot/linux/AROSBootstrap.conf" dist/AROSBootstrap.conf
           cp "$aros_root/S/Startup-Sequence" dist/Startup-Sequence.original
 
-          {
-            echo '=== AROSBootstrap.conf ==='
-            cat "$conf"
-            echo
-            echo '=== boot/linux inventory ==='
-            find "$aros_root/boot/linux" -maxdepth 2 -type f -printf '%P\n' | sort
-            echo
-            echo '=== root directories ==='
-            find "$aros_root" -maxdepth 1 -mindepth 1 -printf '%f\n' | sort
-          } | tee dist/aros-boot-configuration.txt
-
-      - name: Probe hosted AROS without assuming Startup-Sequence
+      - name: Install native qualification hook
         shell: bash
         run: |
           set -euo pipefail
           aros_root='${{ steps.runtime.outputs.aros_root }}'
           cp dist/ExampleAmiga.guide "$aros_root/ExampleAmiga.guide"
+          if [ -e "$aros_root/S/User-Startup" ]; then
+            cp "$aros_root/S/User-Startup" dist/User-Startup.original
+          fi
+          cat > "$aros_root/S/User-Startup" <<'AROS'
+          Echo "DT_USER_STARTUP_ENTERED" >SYS:dt-user-startup-entered.txt
+          Run >NIL: <NIL: SYS:Utilities/MultiView SYS:ExampleAmiga.guide
+          Echo "DT_MULTIVIEW_LAUNCHED" >SYS:dt-multiview-launched.txt
+          AROS
+
+      - name: Execute generated guide in hosted AROS
+        shell: bash
+        run: |
+          set -euo pipefail
+          aros_root='${{ steps.runtime.outputs.aros_root }}'
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1280x800x24 >dist/xvfb.log 2>&1 &
+          xvfb_pid=$!
+          sleep 1
 
           set +e
           (
             cd "$aros_root"
-            timeout 12s xvfb-run -a ./boot/linux/AROSBootstrap
-          ) >dist/aros-runtime.log 2>&1
-          rc=$?
+            ./boot/linux/AROSBootstrap
+          ) >dist/aros-runtime.log 2>&1 &
+          aros_pid=$!
           set -e
 
-          echo "bootstrap_rc=$rc" | tee dist/aros-boot-probe.txt
-          cat dist/aros-runtime.log
+          # User-Startup runs late in the normal Startup-Sequence, after
+          # datatypes and GUI preferences have been initialised.
+          found=0
+          for i in $(seq 1 20); do
+            if [ -s "$aros_root/dt-multiview-launched.txt" ]; then
+              found=1
+              break
+            fi
+            sleep 1
+          done
 
-          # The purpose of this run is evidence collection. A timeout is
-          # expected for an interactive hosted AROS session; only an immediate
-          # bootstrap failure is rejected.
-          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
-            echo "AROSBootstrap failed before the bounded interactive probe completed."
-            exit "$rc"
+          xwininfo -root -tree >dist/aros-window-tree.txt 2>&1 || true
+          import -display :99 -window root dist/aros-desktop.png 2>dist/screenshot.log || true
+
+          kill "$aros_pid" 2>/dev/null || true
+          kill "$xvfb_pid" 2>/dev/null || true
+          wait "$aros_pid" 2>/dev/null || true
+          wait "$xvfb_pid" 2>/dev/null || true
+          cat dist/aros-runtime.log
+          cat dist/aros-window-tree.txt
+
+          test "$found" -eq 1
+          test -s "$aros_root/dt-user-startup-entered.txt"
+          test -s "$aros_root/dt-multiview-launched.txt"
+          cp "$aros_root/dt-user-startup-entered.txt" dist/
+          cp "$aros_root/dt-multiview-launched.txt" dist/
+          test -s dist/aros-desktop.png
+
+          # Require X11 evidence for the guide/viewer, not merely successful
+          # execution of the shell command.
+          if ! grep -Eiq 'MultiView|ExampleAmiga' dist/aros-window-tree.txt; then
+            echo 'No MultiView/ExampleAmiga window found in the AROS X11 tree.'
+            exit 1
           fi
 
-      - name: Record AROS boot investigation
+      - name: Record AROS native qualification
         run: |
           {
             echo "source_commit=${GITHUB_SHA}"
             echo "aros_release=${{ steps.aros.outputs.tag }}"
             echo "fixture_sha256=$(cut -d' ' -f1 dist/ExampleAmiga.guide.sha256)"
-            echo 'result=hosted AROS boot configuration captured for qualification harness integration'
-          } | tee dist/aros-amigaguide-probe.txt
+            echo 'user_startup=PASS'
+            echo 'multiview_launch=PASS'
+            echo 'x11_window_evidence=PASS'
+            echo 'screenshot=PASS'
+            echo 'result=generated AmigaGuide opened in native AROS MultiView'
+          } | tee dist/aros-amigaguide-qualification.txt
 
-      - name: Upload probe evidence
+      - name: Upload qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aros-amigaguide-probe
+          name: aros-amigaguide-qualification
           path: |
             dist/ExampleAmiga.guide
             dist/ExampleAmiga.guide.sha256
-            dist/aros-runtime-inventory.txt
-            dist/aros-startup-inventory.txt
             dist/AROSBootstrap.conf
             dist/Startup-Sequence.original
-            dist/aros-boot-configuration.txt
+            dist/User-Startup.original
             dist/aros-runtime.log
-            dist/aros-boot-probe.txt
-            dist/aros-amigaguide-probe.txt
+            dist/xvfb.log
+            dist/screenshot.log
+            dist/aros-window-tree.txt
+            dist/aros-desktop.png
+            dist/dt-user-startup-entered.txt
+            dist/dt-multiview-launched.txt
+            dist/aros-amigaguide-qualification.txt
           if-no-files-found: warn
