@@ -1,26 +1,58 @@
 #!/bin/sh
 set -eu
 
-if [ "$#" -ne 2 ]; then
-    echo "usage: build-pdf.sh <manual.md> <output.pdf>" >&2
+usage() {
+    echo "usage: build-pdf.sh <manual.md> <output.pdf> [project] [version]" >&2
     exit 2
-fi
+}
+
+[ "$#" -ge 2 ] && [ "$#" -le 4 ] || usage
 
 src=$1
 out=$2
+project=${3:-$(basename "$src" .md)}
+version=${4:-Unreleased}
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+header="$root/templates/pdf/header.tex"
 
 command -v pandoc >/dev/null 2>&1 || {
     echo "ERROR: pandoc is required" >&2
     exit 1
 }
 
-mkdir -p "$(dirname "$out")"
+[ -f "$src" ] || { echo "ERROR: source not found: $src" >&2; exit 1; }
+[ -f "$header" ] || { echo "ERROR: PDF header not found: $header" >&2; exit 1; }
 
-# Keep M0 deliberately simple. M1 will pin the complete PDF toolchain and style.
+mkdir -p "$(dirname "$out")"
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT HUP INT TERM
+
+# Escape the small set of TeX-special characters expected in project/version metadata.
+escape_tex() {
+    printf '%s' "$1" | sed -e 's/\\/\\textbackslash{}/g' -e 's/\([#$%&_{}]\)/\\\1/g'
+}
+
+project_tex=$(escape_tex "$project")
+version_tex=$(escape_tex "$version")
+{
+    printf '\\newcommand{\\DocProject}{%s}\n' "$project_tex"
+    printf '\\newcommand{\\DocVersion}{%s}\n' "$version_tex"
+    cat "$header"
+} > "$tmp"
+
 pandoc "$src" \
     --standalone \
     --toc \
+    --toc-depth=3 \
+    --number-sections \
+    --metadata title= \
+    --metadata author= \
+    --metadata date= \
     --metadata documentclass=article \
+    --variable papersize=a4 \
+    --variable geometry:margin=25mm \
+    --variable fontsize=11pt \
+    --include-in-header="$tmp" \
     -o "$out"
 
-echo "Built $out"
+printf 'Built %s (project=%s, version=%s)\n' "$out" "$project" "$version"
