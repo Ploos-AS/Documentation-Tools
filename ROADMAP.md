@@ -1,6 +1,6 @@
 # Roadmap
 
-## M0 — Foundation
+## M0 — Foundation — PASS
 
 - [x] Define Markdown as canonical source.
 - [x] Define PDF as the primary distributed manual.
@@ -12,14 +12,18 @@
 - [x] Add example documentation.
 - [x] Add CI smoke tests.
 
-## M1 — PDF quality
+## M1 — PDF quality — qualification pending
 
-- Reproducible PDF container/toolchain.
-- Ploos-AS title page and typography.
-- Automatic metadata/version injection.
-- Table of contents, headers/footers and page numbering.
-- Link and image handling.
-- PDF qualification fixtures.
+- [x] Ploos-AS title page and typography baseline.
+- [x] Project/version metadata injection.
+- [x] Table of contents and numbered sections.
+- [x] Headers, footers and page numbering.
+- [x] A4 release-manual defaults.
+- [x] PDF qualification fixture in GitHub Actions.
+- [ ] Pin/encapsulate the complete PDF toolchain for byte-level reproducibility.
+- [ ] Rich image handling qualification.
+
+The remaining reproducibility and richer media work is intentionally carried forward rather than blocking the useful M1 layout baseline.
 
 ## M2 — AmigaGuide quality
 
