@@ -1,0 +1,63 @@
+name: Ploos-AS Documentation Build
+description: Validate Markdown and build Ploos-AS PDF and optional AmigaGuide manuals.
+inputs:
+  source:
+    description: Markdown manual source
+    required: true
+  project:
+    description: Project name used in generated filenames and PDF metadata
+    required: true
+  version:
+    description: Project/manual version
+    required: true
+  amiga:
+    description: Build and validate an AmigaGuide in addition to PDF
+    required: false
+    default: 'false'
+  output-dir:
+    description: Output directory
+    required: false
+    default: dist
+outputs:
+  pdf:
+    description: Generated PDF path
+    value: ${{ steps.build.outputs.pdf }}
+  guide:
+    description: Generated AmigaGuide path, empty when amiga is false
+    value: ${{ steps.build.outputs.guide }}
+runs:
+  using: composite
+  steps:
+    - name: Validate documentation source
+      shell: bash
+      run: python3 "$GITHUB_ACTION_PATH/tools/validate-docs.py" "${{ inputs.source }}"
+
+    - name: Check PDF build dependencies
+      shell: bash
+      run: |
+        command -v pandoc >/dev/null || { echo 'pandoc is required by Ploos-AS/Documentation-Tools'; exit 1; }
+        command -v pdflatex >/dev/null || { echo 'pdflatex is required by Ploos-AS/Documentation-Tools'; exit 1; }
+
+    - name: Build documentation artifacts
+      id: build
+      shell: bash
+      run: |
+        set -euo pipefail
+        out='${{ inputs.output-dir }}'
+        project='${{ inputs.project }}'
+        version='${{ inputs.version }}'
+        source='${{ inputs.source }}'
+        mkdir -p "$out"
+
+        pdf="$out/${project}-${version}-User-Manual.pdf"
+        "$GITHUB_ACTION_PATH/tools/build-pdf.sh" "$source" "$pdf" "$project" "$version"
+        echo "pdf=$pdf" >> "$GITHUB_OUTPUT"
+
+        if [ '${{ inputs.amiga }}' = 'true' ]; then
+          guide="$out/${project}-${version}.guide"
+          python3 "$GITHUB_ACTION_PATH/tools/build-amigaguide.py" "$source" "$guide"
+          python3 "$GITHUB_ACTION_PATH/tools/validate-amigaguide.py" "$guide"
+          echo "guide=$guide" >> "$GITHUB_OUTPUT"
+        else
+          echo 'guide=' >> "$GITHUB_OUTPUT"
+        fi
