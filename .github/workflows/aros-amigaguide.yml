@@ -44,7 +44,6 @@ jobs:
           python3 - "$GITHUB_OUTPUT" "$RUNNER_TEMP/aros-release.json" <<'PY'
           import json
           import sys
-
           output_path, release_path = sys.argv[1:3]
           with open(release_path, "r", encoding="utf-8") as source:
               data = json.load(source)
@@ -96,14 +95,13 @@ jobs:
 
           cp "$aros_root/S/Startup-Sequence" "$RUNNER_TEMP/Startup-Sequence.original"
           cat > "$aros_root/S/Startup-Sequence" <<'AROS'
-          C:MultiView SYS:ExampleAmiga.guide
-          Wait 3
+          Run >NIL: <NIL: Utilities:MultiView SYS:ExampleAmiga.guide
+          Wait 5
           C:Avail >T:documentation-tools-avail.txt
+          Echo "MultiView launch returned control to Startup-Sequence" >T:documentation-tools-multiview.txt
           C:Shutdown
           AROS
 
-          # AROSBootstrap resolves boot/linux/AROSBootstrap.conf relative to
-          # the runtime root, so launch it from that directory.
           set +e
           (
             cd "$aros_root"
@@ -115,7 +113,7 @@ jobs:
 
           cat dist/aros-runtime.log
           if [ "$rc" -eq 124 ]; then
-            echo 'Hosted AROS did not terminate after executing the qualification sequence.'
+            echo 'Hosted AROS did not terminate after asynchronous MultiView launch.'
             exit 1
           fi
           if [ "$rc" -ne 0 ]; then
@@ -123,8 +121,10 @@ jobs:
             exit "$rc"
           fi
           test -s "$aros_root/T/documentation-tools-avail.txt"
+          test -s "$aros_root/T/documentation-tools-multiview.txt"
           cp "$aros_root/T/documentation-tools-avail.txt" dist/aros-native-command-evidence.txt
-          echo 'AROS native command sequence completed after opening the generated AmigaGuide.' | tee dist/aros-amigaguide-execution.txt
+          cp "$aros_root/T/documentation-tools-multiview.txt" dist/aros-multiview-evidence.txt
+          echo 'AROS Startup-Sequence continued after asynchronous native MultiView launch of generated AmigaGuide.' | tee dist/aros-amigaguide-execution.txt
 
       - name: Record AROS qualification probe
         run: |
@@ -134,7 +134,7 @@ jobs:
             echo "aros_asset=${{ steps.aros.outputs.url }}"
             echo "aros_asset_sha256=${{ steps.aros.outputs.sha256 }}"
             echo "fixture_sha256=$(cut -d' ' -f1 dist/ExampleAmiga.guide.sha256)"
-            echo 'result=generated AmigaGuide opened by native MultiView in hosted AROS command sequence'
+            echo 'result=generated AmigaGuide launched asynchronously in native MultiView on hosted AROS'
           } | tee dist/aros-amigaguide-probe.txt
 
       - name: Upload probe evidence
@@ -148,6 +148,7 @@ jobs:
             dist/aros-runtime-inventory.txt
             dist/aros-runtime.log
             dist/aros-native-command-evidence.txt
+            dist/aros-multiview-evidence.txt
             dist/aros-amigaguide-execution.txt
             dist/aros-amigaguide-probe.txt
           if-no-files-found: warn
