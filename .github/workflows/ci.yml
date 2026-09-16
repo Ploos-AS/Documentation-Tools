@@ -16,14 +16,15 @@ jobs:
       - name: Validate example source
         run: python3 tools/validate-docs.py examples/ExampleAmigaManual.md
 
-      - name: Build AmigaGuide fixture
+      - name: Build and validate M2 AmigaGuide fixture
         run: |
           mkdir -p dist
           python3 tools/build-amigaguide.py examples/ExampleAmigaManual.md dist/ExampleAmiga.guide
           test -s dist/ExampleAmiga.guide
+          python3 tools/validate-amigaguide.py dist/ExampleAmiga.guide
           grep -q '^@database ' dist/ExampleAmiga.guide
           grep -q '^@node Main ' dist/ExampleAmiga.guide
-          grep -q '@endnode' dist/ExampleAmiga.guide
+          grep -q '@{"Contents" link Main}' dist/ExampleAmiga.guide
 
       - name: Syntax-check Python tools
         run: python3 -m py_compile tools/*.py
