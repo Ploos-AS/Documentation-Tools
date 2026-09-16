@@ -31,7 +31,7 @@ jobs:
       - name: Install PDF dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended texlive-latex-extra
+          sudo apt-get install -y pandoc poppler-utils texlive-latex-base texlive-latex-recommended texlive-latex-extra
 
       - name: Build M1 PDF fixture
         run: |
