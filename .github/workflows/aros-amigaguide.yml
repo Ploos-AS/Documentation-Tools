@@ -36,15 +36,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          page="$(curl -fsSL 'https://www.aros.org/cgi-bin/files?lang=en&type=nightly2')"
-          url="$(printf '%s' "$page" | grep -Eo 'https?://[^"'"'"' <>]+linux-x86_64[^"'"'"' <>]+' | head -n1 || true)"
-          if [ -z "$url" ]; then
-            href="$(printf '%s' "$page" | grep -Eo 'href="[^"]+"' | cut -d'"' -f2 | grep 'linux-x86_64' | head -n1 || true)"
-            if [ -n "$href" ]; then
-              url="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.urljoin("https://www.aros.org/cgi-bin/files?lang=en&type=nightly2", sys.argv[1]))' "$href")"
-            fi
-          fi
-          test -n "$url" || { echo 'Official nightly page did not expose a linux-x86_64 hosted archive'; exit 1; }
+          base='https://aros.org'
+          page_url="$base/cgi-bin/files?lang=en&type=nightly2"
+          page="$(curl -fsSL "$page_url")"
+          href="$(printf '%s' "$page" | grep -Eo 'href="[^"]+"' | cut -d'"' -f2 | grep -Ei 'linux-x86_64-system' | head -n1 || true)"
+          test -n "$href" || { echo 'Official nightly page did not expose linux-x86_64-system'; exit 1; }
+          url="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.urljoin(sys.argv[1], sys.argv[2]))' "$page_url" "$href")"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           printf 'Resolved official AROS nightly: %s\n' "$url"
 
