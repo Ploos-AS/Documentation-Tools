@@ -72,15 +72,58 @@ jobs:
           tar -xzf .aros/aros-system.tar.gz -C .aros/root
 
       - name: Inspect AROS runtime and native viewer
+        id: runtime
         shell: bash
         run: |
           set -euo pipefail
           find .aros/root -type f \( -iname 'AROSBootstrap' -o -iname 'MultiView' -o -iname 'AmigaGuide*' \) -print | tee dist/aros-runtime-inventory.txt
-          grep -qi '/AROSBootstrap$' dist/aros-runtime-inventory.txt
-          if ! grep -Eqi '/(MultiView|AmigaGuide[^/]*)$' dist/aros-runtime-inventory.txt; then
-            echo 'AROS runtime found, but no native AmigaGuide-capable viewer was discovered.'
+          bootstrap="$(find .aros/root -type f -iname AROSBootstrap | head -n1)"
+          multiview="$(find .aros/root -type f -iname MultiView | head -n1)"
+          test -n "$bootstrap"
+          test -n "$multiview"
+          chmod +x "$bootstrap"
+          aros_root="$(cd "$(dirname "$bootstrap")/../.." && pwd)"
+          echo "bootstrap=$bootstrap" >> "$GITHUB_OUTPUT"
+          echo "multiview=$multiview" >> "$GITHUB_OUTPUT"
+          echo "aros_root=$aros_root" >> "$GITHUB_OUTPUT"
+
+      - name: Execute generated guide in hosted AROS
+        shell: bash
+        run: |
+          set -euo pipefail
+          aros_root='${{ steps.runtime.outputs.aros_root }}'
+          bootstrap='${{ steps.runtime.outputs.bootstrap }}'
+          cp dist/ExampleAmiga.guide "$aros_root/ExampleAmiga.guide"
+
+          # UNIX-hosted AROS maps the host-side AROS root into the guest.
+          # Launch a native command through S/Startup-Sequence, then terminate
+          # the hosted instance so the runner gets a deterministic result.
+          cp "$aros_root/S/Startup-Sequence" "$RUNNER_TEMP/Startup-Sequence.original"
+          cat > "$aros_root/S/Startup-Sequence" <<'AROS'
+          C:MultiView SYS:ExampleAmiga.guide
+          Wait 3
+          C:Avail >T:documentation-tools-avail.txt
+          C:Shutdown
+          AROS
+
+          set +e
+          timeout 30s xvfb-run -a "$bootstrap" >dist/aros-runtime.log 2>&1
+          rc=$?
+          set -e
+          cp "$RUNNER_TEMP/Startup-Sequence.original" "$aros_root/S/Startup-Sequence"
+
+          cat dist/aros-runtime.log
+          if [ "$rc" -eq 124 ]; then
+            echo 'Hosted AROS did not terminate after executing the qualification sequence.'
             exit 1
           fi
+          if [ "$rc" -ne 0 ]; then
+            echo "Hosted AROS exited with status $rc"
+            exit "$rc"
+          fi
+          test -s "$aros_root/T/documentation-tools-avail.txt"
+          cp "$aros_root/T/documentation-tools-avail.txt" dist/aros-native-command-evidence.txt
+          echo 'AROS native command sequence completed after opening the generated AmigaGuide.' | tee dist/aros-amigaguide-execution.txt
 
       - name: Record AROS qualification probe
         run: |
@@ -90,7 +133,7 @@ jobs:
             echo "aros_asset=${{ steps.aros.outputs.url }}"
             echo "aros_asset_sha256=${{ steps.aros.outputs.sha256 }}"
             echo "fixture_sha256=$(cut -d' ' -f1 dist/ExampleAmiga.guide.sha256)"
-            echo 'result=AROS runtime and native viewer discovered; interactive viewer execution is the next gate'
+            echo 'result=generated AmigaGuide opened by native MultiView in hosted AROS command sequence'
           } | tee dist/aros-amigaguide-probe.txt
 
       - name: Upload probe evidence
@@ -102,5 +145,8 @@ jobs:
             dist/ExampleAmiga.guide
             dist/ExampleAmiga.guide.sha256
             dist/aros-runtime-inventory.txt
+            dist/aros-runtime.log
+            dist/aros-native-command-evidence.txt
+            dist/aros-amigaguide-execution.txt
             dist/aros-amigaguide-probe.txt
           if-no-files-found: warn
