@@ -1,0 +1,35 @@
+% Documentation-Tools M1 PDF defaults
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\definecolor{PloosDark}{HTML}{20252B}
+\hypersetup{colorlinks=true,linkcolor=PloosDark,urlcolor=PloosDark}
+
+\setlength{\parindent}{0pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily \DocProject}
+\fancyhead[R]{\small\sffamily \DocVersion}
+\fancyfoot[C]{\small\sffamily Page \thepage\ of \pageref*{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\AtBeginDocument{%
+  \begin{titlepage}
+    \centering
+    \vspace*{0.18\textheight}
+    {\Huge\bfseries\sffamily \DocProject\par}
+    \vspace{1.2em}
+    {\LARGE\sffamily User Manual\par}
+    \vfill
+    {\large\sffamily Version \DocVersion\par}
+    \vspace{0.5em}
+    {\large\sffamily Ploos-AS\par}
+    \vspace{0.12\textheight}
+  \end{titlepage}
+}
