@@ -29,40 +29,48 @@ jobs:
       - name: Install probe dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl unzip xz-utils xvfb
+          sudo apt-get install -y curl xz-utils xvfb
 
-      - name: Resolve current official AROS Linux hosted nightly
-        id: nightly
+      - name: Resolve current AROS ABIv11 Linux hosted GitHub release
+        id: aros
         shell: bash
         run: |
           set -euo pipefail
-          base='https://aros.org'
-          page_url="$base/cgi-bin/files?lang=en&type=nightly2"
-          page="$(curl -fsSL "$page_url")"
-          href="$(printf '%s' "$page" | grep -Eo 'href="[^"]+"' | cut -d'"' -f2 | grep -Ei 'linux-x86_64-system' | head -n1 || true)"
-          test -n "$href" || { echo 'Official nightly page did not expose linux-x86_64-system'; exit 1; }
-          url="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.urljoin(sys.argv[1], sys.argv[2]))' "$page_url" "$href")"
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-          printf 'Resolved official AROS nightly: %s\n' "$url"
+          release_json="$(curl -fsSL --retry 3 'https://api.github.com/repos/deadwood2/AROS/releases/latest')"
+          python3 - "$GITHUB_OUTPUT" <<'PY' <<<"$release_json"
+          import json
+          import sys
 
-      - name: Download and inspect AROS hosted runtime
+          data = json.load(sys.stdin)
+          assets = [a for a in data.get("assets", []) if "linux-x86_64-system" in a.get("name", "")]
+          if len(assets) != 1:
+              raise SystemExit(f"expected exactly one linux-x86_64-system asset, found {len(assets)}")
+          asset = assets[0]
+          digest = asset.get("digest", "")
+          if not digest.startswith("sha256:"):
+              raise SystemExit("GitHub release asset has no SHA-256 digest")
+          with open(sys.argv[1], "a", encoding="utf-8") as output:
+              output.write(f"tag={data['tag_name']}\n")
+              output.write(f"url={asset['browser_download_url']}\n")
+              output.write(f"sha256={digest.removeprefix('sha256:')}\n")
+          print(f"Resolved AROS {data['tag_name']}: {asset['name']}")
+          PY
+
+      - name: Download and verify AROS hosted runtime
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .aros
-          curl -fL --retry 3 '${{ steps.nightly.outputs.url }}' -o .aros/nightly
-          file .aros/nightly
-          if unzip -t .aros/nightly >/dev/null 2>&1; then
-            unzip -q .aros/nightly -d .aros/root
-          elif tar -tf .aros/nightly >/dev/null 2>&1; then
-            mkdir -p .aros/root
-            tar -xf .aros/nightly -C .aros/root
-          else
-            echo 'Unsupported AROS nightly archive format'
-            exit 1
-          fi
+          mkdir -p .aros/root
+          curl -fL --retry 3 '${{ steps.aros.outputs.url }}' -o .aros/aros-system.tar.gz
+          printf '%s  %s\n' '${{ steps.aros.outputs.sha256 }}' '.aros/aros-system.tar.gz' | sha256sum -c -
+          tar -xzf .aros/aros-system.tar.gz -C .aros/root
+
+      - name: Inspect AROS runtime and native viewer
+        shell: bash
+        run: |
+          set -euo pipefail
           find .aros/root -type f \( -iname 'AROSBootstrap' -o -iname 'MultiView' -o -iname 'AmigaGuide*' \) -print | tee dist/aros-runtime-inventory.txt
-          grep -qi 'AROSBootstrap' dist/aros-runtime-inventory.txt
+          grep -qi '/AROSBootstrap$' dist/aros-runtime-inventory.txt
           if ! grep -Eqi '/(MultiView|AmigaGuide[^/]*)$' dist/aros-runtime-inventory.txt; then
             echo 'AROS runtime found, but no native AmigaGuide-capable viewer was discovered.'
             exit 1
@@ -72,7 +80,9 @@ jobs:
         run: |
           {
             echo "source_commit=${GITHUB_SHA}"
-            echo "aros_nightly=${{ steps.nightly.outputs.url }}"
+            echo "aros_release=${{ steps.aros.outputs.tag }}"
+            echo "aros_asset=${{ steps.aros.outputs.url }}"
+            echo "aros_asset_sha256=${{ steps.aros.outputs.sha256 }}"
             echo "fixture_sha256=$(cut -d' ' -f1 dist/ExampleAmiga.guide.sha256)"
             echo 'result=AROS runtime and native viewer discovered; interactive viewer execution is the next gate'
           } | tee dist/aros-amigaguide-probe.txt
