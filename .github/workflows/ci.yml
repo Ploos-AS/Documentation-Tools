@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  m0:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate example source
+        run: python3 tools/validate-docs.py examples/ExampleAmigaManual.md
+
+      - name: Build AmigaGuide fixture
+        run: |
+          mkdir -p dist
+          python3 tools/build-amigaguide.py examples/ExampleAmigaManual.md dist/ExampleAmiga.guide
+          test -s dist/ExampleAmiga.guide
+          grep -q '^@database ' dist/ExampleAmiga.guide
+          grep -q '^@node Main ' dist/ExampleAmiga.guide
+          grep -q '@endnode' dist/ExampleAmiga.guide
+
+      - name: Syntax-check Python tools
+        run: python3 -m py_compile tools/*.py
+
+      - name: Install PDF dependencies
+        run: sudo apt-get update && sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended
+
+      - name: Build PDF fixture
+        run: |
+          sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/ExampleAmiga-User-Manual.pdf
+          test -s dist/ExampleAmiga-User-Manual.pdf
+
+      - name: Upload M0 documentation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-documentation
+          path: dist/
