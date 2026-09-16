@@ -50,7 +50,7 @@ runs:
         mkdir -p "$out"
 
         pdf="$out/${project}-${version}-User-Manual.pdf"
-        "$GITHUB_ACTION_PATH/tools/build-pdf.sh" "$source" "$pdf" "$project" "$version"
+        bash "$GITHUB_ACTION_PATH/tools/build-pdf.sh" "$source" "$pdf" "$project" "$version"
         echo "pdf=$pdf" >> "$GITHUB_OUTPUT"
 
         if [ '${{ inputs.amiga }}' = 'true' ]; then
