@@ -1,10 +1,29 @@
 # M2 Native AmigaGuide Qualification
 
-Status: PENDING
+Status: PENDING — automated AROS compatibility gate PASS; AmigaOS navigation gate pending
 
-This is the final M2 gate. It verifies the generated `.guide` with the native AmigaGuide viewer on AmigaOS. Proprietary Kickstart ROMs and AmigaOS files must never be committed to this repository.
+This is the final M2 qualification procedure. It combines an automated native AROS compatibility gate with a visible AmigaOS navigation gate. Proprietary Kickstart ROMs and AmigaOS files must never be committed to this repository.
 
-## Target
+## Automated AROS compatibility gate
+
+GitHub Actions runs `.github/workflows/aros-amigaguide.yml` using the current verifiable `deadwood2/AROS` ABIv11 Linux-hosted release.
+
+The automated gate:
+
+- builds and structurally validates `dist/ExampleAmiga.guide`;
+- verifies the downloaded AROS runtime against its published SHA-256 digest;
+- verifies native `amigaguide.library`, AmigaGuide datatype and MultiView are present;
+- boots hosted AROS under Xvfb;
+- reaches `S:User-Startup`;
+- launches the generated guide through native AROS MultiView;
+- verifies the hosted AROS screen exists;
+- captures screenshot and runtime evidence as a GitHub Actions artifact.
+
+Hosted AROS renders native Intuition windows inside one top-level X11 AROS screen. A separate X11 window named MultiView is therefore not a qualification requirement.
+
+This gate is a non-proprietary automated compatibility test. It does not replace the visible AmigaOS navigation test below.
+
+## AmigaOS target
 
 Baseline qualification target:
 
@@ -27,7 +46,7 @@ sha256sum dist/ExampleAmiga.guide
 
 The structural validator must pass before the native test starts.
 
-## Native test
+## Visible AmigaOS navigation test
 
 Open the generated guide with the native AmigaGuide viewer. Do not run this qualification headless.
 
@@ -50,20 +69,22 @@ Record:
 - date;
 - repository commit SHA;
 - SHA-256 of `ExampleAmiga.guide`;
+- automated AROS workflow run and result;
 - emulator/hardware and version;
 - Amiga model/CPU profile;
 - AmigaOS version;
 - viewer used;
-- PASS/FAIL for each native test item;
+- PASS/FAIL for each visible native test item;
 - notes for any normalization or environment-specific behavior.
 
 Screenshots are useful evidence but are not required to be committed. Never add proprietary ROM, Workbench, AmigaOS, or other licensed system files as evidence.
 
 ## PASS rule
 
-M2 may be marked PASS only when:
+M2 may be marked PASS only when all of the following are true for the qualified source:
 
-- GitHub Actions structural qualification is green for the qualified source commit; and
-- every native test item above passes against an artifact generated from that source.
+- GitHub Actions structural qualification is green;
+- the automated AROS compatibility gate is green; and
+- every visible AmigaOS navigation item above passes against an artifact generated from that source.
 
-If any native item fails, keep M2 pending, record the failure precisely, fix the generator or fixture, rerun CI, and repeat native qualification.
+If any item fails, keep M2 pending, record the failure precisely, fix the generator or fixture, rerun CI, and repeat the affected qualification gate.
