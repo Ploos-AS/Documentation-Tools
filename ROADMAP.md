@@ -25,7 +25,7 @@
 
 The remaining reproducibility and richer media work is intentionally carried forward rather than blocking the useful M1 layout baseline.
 
-## M2 — AmigaGuide quality — native qualification pending
+## M2 — AmigaGuide quality — AmigaOS navigation qualification pending
 
 - [x] Richer deterministic node generation and navigation.
 - [x] Internal Markdown links and cross references.
@@ -33,9 +33,10 @@ The remaining reproducibility and richer media work is intentionally carried for
 - [x] AmigaGuide escaping and Latin-1 charset policy in the generator.
 - [x] Dependency-free structural AmigaGuide validator.
 - [x] GitHub Actions structural qualification.
-- [ ] Native AmigaGuide viewer/runtime qualification.
+- [x] Automated native AROS MultiView compatibility gate.
+- [ ] Visible AmigaOS 2.04+ navigation qualification.
 
-Structural qualification requires no proprietary AmigaOS assets. Native viewer/runtime qualification remains the final M2 gate.
+The AROS gate provides automated, non-proprietary native compatibility coverage on GitHub Actions. The final M2 gate remains the visible AmigaOS navigation qualification defined in `docs/M2_NATIVE_QUALIFICATION.md`.
 
 ## M3 — Consumer integration
 
