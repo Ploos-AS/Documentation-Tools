@@ -21,9 +21,9 @@
 - [x] A4 release-manual defaults.
 - [x] PDF qualification fixture in GitHub Actions.
 - [x] Deterministic PDF builds under the reproducible-build environment used by CI/release workflows.
-- [ ] Rich image handling qualification.
+- [x] Rich image handling qualification with local asset validation and PDF rendering coverage.
 
-Richer media work is intentionally carried forward rather than blocking the useful M1 layout baseline.
+M1 is fully qualified in GitHub Actions, including deterministic PDF generation and local rich-image assets. The same image fixture also exercises HTML rendering and readable AmigaGuide alternative-text fallback.
 
 ## M2 — AmigaGuide quality — AmigaOS navigation qualification pending
 
