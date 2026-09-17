@@ -8,20 +8,9 @@ Markdown is the canonical source. Documentation-Tools turns it into release-read
 
 - **PDF** — primary user manual for modern systems and release distribution.
 - **AmigaGuide (`.guide`)** — native hypertext manual for Amiga software.
+- **Standalone HTML (`.html`)** — optional portable browser-readable manual generated from the same Markdown source.
 
-DOCX is deliberately not part of the required toolchain.
-
-## M0 scope
-
-M0 establishes:
-
-- repository and format conventions;
-- reusable user-manual templates;
-- documentation validation;
-- Markdown to PDF build support;
-- Markdown to AmigaGuide generation;
-- a representative Amiga example;
-- GitHub Actions smoke tests.
+DOCX is deliberately not part of the baseline toolchain. Additional formats should only be added when a concrete consumer requires them.
 
 ## Quick start
 
@@ -43,8 +32,21 @@ Build an AmigaGuide:
 python3 tools/build-amigaguide.py examples/ExampleAmigaManual.md dist/ExampleAmiga.guide
 ```
 
-See [docs/FORMAT.md](docs/FORMAT.md) for the source contract and [ROADMAP.md](ROADMAP.md) for planned milestones.
+Build optional standalone HTML:
+
+```sh
+tools/build-html.sh examples/ExampleAmigaManual.md dist/ExampleAmiga-User-Manual.html ExampleAmiga 1.0.0
+```
+
+The reusable action always builds PDF and can additionally build AmigaGuide with `amiga: 'true'` and standalone HTML with `html: 'true'`.
+
+See [docs/FORMAT.md](docs/FORMAT.md), [docs/CONSUMER_INTEGRATION.md](docs/CONSUMER_INTEGRATION.md), and [ROADMAP.md](ROADMAP.md).
 
 ## Status
 
-**M0 — foundation**
+- **M0 — Foundation — PASS**
+- **M1 — PDF quality — PASS**
+- **M2 — AmigaGuide quality — AmigaOS navigation qualification pending**
+- **M3 — Consumer integration — PASS**
+- **M4 — Documentation QA — PASS**
+- **M5 — Extended formats — HTML PASS**
