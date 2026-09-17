@@ -1,17 +1,21 @@
 name: Ploos-AS Documentation Build
-description: Validate Markdown and build Ploos-AS PDF and optional AmigaGuide manuals.
+description: Validate Markdown and build Ploos-AS PDF plus optional AmigaGuide and HTML manuals.
 inputs:
   source:
     description: Markdown manual source
     required: true
   project:
-    description: Project name used in generated filenames and PDF metadata
+    description: Project name used in generated filenames and metadata
     required: true
   version:
     description: Project/manual version
     required: true
   amiga:
     description: Build and validate an AmigaGuide in addition to PDF
+    required: false
+    default: 'false'
+  html:
+    description: Build standalone HTML in addition to PDF
     required: false
     default: 'false'
   output-dir:
@@ -25,6 +29,9 @@ outputs:
   guide:
     description: Generated AmigaGuide path, empty when amiga is false
     value: ${{ steps.build.outputs.guide }}
+  html:
+    description: Generated standalone HTML path, empty when html is false
+    value: ${{ steps.build.outputs.html }}
 runs:
   using: composite
   steps:
@@ -32,7 +39,7 @@ runs:
       shell: bash
       run: python3 "$GITHUB_ACTION_PATH/tools/validate-docs.py" "${{ inputs.source }}"
 
-    - name: Check PDF build dependencies
+    - name: Check documentation build dependencies
       shell: bash
       run: |
         command -v pandoc >/dev/null || { echo 'pandoc is required by Ploos-AS/Documentation-Tools'; exit 1; }
@@ -60,4 +67,12 @@ runs:
           echo "guide=$guide" >> "$GITHUB_OUTPUT"
         else
           echo 'guide=' >> "$GITHUB_OUTPUT"
+        fi
+
+        if [ '${{ inputs.html }}' = 'true' ]; then
+          html="$out/${project}-${version}-User-Manual.html"
+          bash "$GITHUB_ACTION_PATH/tools/build-html.sh" "$source" "$html" "$project" "$version"
+          echo "html=$html" >> "$GITHUB_OUTPUT"
+        else
+          echo 'html=' >> "$GITHUB_OUTPUT"
         fi
