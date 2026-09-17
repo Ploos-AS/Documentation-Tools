@@ -60,6 +60,11 @@ The reusable build and release workflows are qualified, including a real GitHub 
 
 M4 is qualified in GitHub Actions. Release documentation now includes deterministic integrity metadata in addition to the generated manuals.
 
-## M5 — Extended formats
+## M5 — Extended formats — HTML PASS
 
-Optional outputs only when a concrete consumer needs them, for example HTML. DOCX is not a baseline target.
+- [x] Add optional standalone HTML generation from canonical Markdown.
+- [x] Expose HTML as an opt-in reusable-action output.
+- [x] Qualify standalone HTML structure, TOC, metadata, filename, and reusable-action integration in GitHub Actions.
+- [ ] Add further formats only when a concrete consumer requires them.
+
+HTML is a supported optional output. PDF remains the primary distributed manual, and AmigaGuide remains the native Amiga format. DOCX is not a baseline target.
