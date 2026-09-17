@@ -57,6 +57,18 @@ jobs:
           test -s dist/ExampleAmiga-0.0.0-m1-User-Manual.pdf
           pdfinfo dist/ExampleAmiga-0.0.0-m1-User-Manual.pdf | grep -q '^Pages:'
 
+      - name: Qualify M5 standalone HTML fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          html=dist/ExampleAmiga-0.0.0-m5-User-Manual.html
+          sh tools/build-html.sh examples/ExampleAmigaManual.md "$html" ExampleAmiga 0.0.0-m5
+          test -s "$html"
+          grep -qi '<!DOCTYPE html' "$html"
+          grep -q '<nav id="TOC"' "$html"
+          grep -q 'ExampleAmiga User Manual' "$html"
+          grep -q 'Version 0.0.0-m5' "$html"
+
       - name: Qualify reproducible builds
         shell: bash
         run: |
@@ -79,20 +91,25 @@ jobs:
         with:
           source: examples/ExampleAmigaManual.md
           project: ActionFixture
-          version: 0.0.0-m3
+          version: 0.0.0-m5
           amiga: 'true'
+          html: 'true'
           output-dir: dist/action
 
       - name: Verify reusable action outputs
         shell: bash
         run: |
           set -euo pipefail
-          test '${{ steps.reusable.outputs.pdf }}' = 'dist/action/ActionFixture-0.0.0-m3-User-Manual.pdf'
-          test '${{ steps.reusable.outputs.guide }}' = 'dist/action/ActionFixture-0.0.0-m3.guide'
+          test '${{ steps.reusable.outputs.pdf }}' = 'dist/action/ActionFixture-0.0.0-m5-User-Manual.pdf'
+          test '${{ steps.reusable.outputs.guide }}' = 'dist/action/ActionFixture-0.0.0-m5.guide'
+          test '${{ steps.reusable.outputs.html }}' = 'dist/action/ActionFixture-0.0.0-m5-User-Manual.html'
           test -s '${{ steps.reusable.outputs.pdf }}'
           test -s '${{ steps.reusable.outputs.guide }}'
+          test -s '${{ steps.reusable.outputs.html }}'
           pdfinfo '${{ steps.reusable.outputs.pdf }}' | grep -q '^Pages:'
           python3 tools/validate-amigaguide.py '${{ steps.reusable.outputs.guide }}'
+          grep -qi '<!DOCTYPE html' '${{ steps.reusable.outputs.html }}'
+          grep -q '<nav id="TOC"' '${{ steps.reusable.outputs.html }}'
 
       - name: Upload documentation artifacts
         uses: actions/upload-artifact@v4
