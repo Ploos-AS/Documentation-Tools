@@ -1,0 +1,34 @@
+name: Qualify reusable documentation workflow
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build-docs.yml'
+      - '.github/workflows/qualify-reusable-workflow.yml'
+      - 'action.yml'
+      - 'tools/**'
+      - 'templates/**'
+      - 'examples/ExampleAmigaManual.md'
+  pull_request:
+    paths:
+      - '.github/workflows/build-docs.yml'
+      - '.github/workflows/qualify-reusable-workflow.yml'
+      - 'action.yml'
+      - 'tools/**'
+      - 'templates/**'
+      - 'examples/ExampleAmigaManual.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-workflow:
+    uses: ./.github/workflows/build-docs.yml
+    with:
+      source: examples/ExampleAmigaManual.md
+      project: WorkflowFixture
+      version: 0.0.0-m3
+      amiga: true
+      output-dir: dist/workflow
+      artifact-name: reusable-workflow-qualification
