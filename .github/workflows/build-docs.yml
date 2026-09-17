@@ -1,0 +1,71 @@
+name: Build documentation
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        description: Markdown manual source
+        required: true
+        type: string
+      project:
+        description: Project name used in generated filenames and PDF metadata
+        required: true
+        type: string
+      version:
+        description: Project/manual version
+        required: true
+        type: string
+      amiga:
+        description: Build and validate an AmigaGuide in addition to PDF
+        required: false
+        default: false
+        type: boolean
+      output-dir:
+        description: Output directory
+        required: false
+        default: dist
+        type: string
+      artifact-name:
+        description: GitHub Actions artifact name
+        required: false
+        default: documentation
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out consumer repository
+        uses: actions/checkout@v4
+
+      - name: Check out Documentation-Tools
+        uses: actions/checkout@v4
+        with:
+          repository: Ploos-AS/Documentation-Tools
+          ref: ${{ github.workflow_ref }}
+          path: .documentation-tools
+
+      - name: Install documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended texlive-latex-extra
+
+      - name: Build documentation
+        id: docs
+        uses: ./.documentation-tools
+        with:
+          source: ${{ inputs.source }}
+          project: ${{ inputs.project }}
+          version: ${{ inputs.version }}
+          amiga: ${{ inputs.amiga }}
+          output-dir: ${{ inputs.output-dir }}
+
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.output-dir }}/
+          if-no-files-found: error
