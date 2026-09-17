@@ -40,6 +40,16 @@ version_tex=$(escape_tex "$version")
     cat "$header"
 } > "$tmp"
 
+# pdfTeX normally embeds wall-clock timestamps and a trailer ID.  When
+# SOURCE_DATE_EPOCH is supplied (CI/release builds), TeX honours it for the
+# creation date.  FORCE_SOURCE_DATE=1 makes that behaviour explicit and the
+# fixed trailer-ID seed removes the remaining per-process randomness.
+if [ -n "${SOURCE_DATE_EPOCH:-}" ]; then
+    export FORCE_SOURCE_DATE=1
+    export TZ=UTC
+fi
+export SOURCE_DATE_EPOCH FORCE_SOURCE_DATE TZ
+
 pandoc "$src" \
     --standalone \
     --toc \
@@ -53,6 +63,8 @@ pandoc "$src" \
     --variable geometry:margin=25mm \
     --variable fontsize=11pt \
     --include-in-header="$tmp" \
+    --pdf-engine-opt=-jobname=documentation-tools \
+    --pdf-engine-opt=-output-comment=Documentation-Tools \
     -o "$out"
 
 printf 'Built %s (project=%s, version=%s)\n' "$out" "$project" "$version"
