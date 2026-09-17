@@ -1,9 +1,6 @@
 name: Qualify release publishing
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
