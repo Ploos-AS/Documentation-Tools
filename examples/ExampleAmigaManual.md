@@ -4,9 +4,13 @@ Version: 0.0.0-m2
 
 ## Introduction
 
-ExampleAmiga demonstrates the Documentation-Tools M2 source format.
+ExampleAmiga demonstrates the Documentation-Tools source format.
 
 Use the [Command Reference](#command-reference) for command syntax. The literal address `user@example.invalid` exercises AmigaGuide `@` escaping.
+
+![Documentation-Tools output architecture](assets/architecture.svg)
+
+The diagram above is a local documentation asset used to qualify rich-image handling in PDF and HTML builds. AmigaGuide keeps the image's alternative text as a readable fallback instead of embedding modern image media.
 
 ## Requirements
 
