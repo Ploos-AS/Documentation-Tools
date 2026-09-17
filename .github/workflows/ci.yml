@@ -23,6 +23,13 @@ jobs:
           mapfile -d '' markdown_files < <(find . -type f -name '*.md' -not -path './.git/*' -print0)
           python3 tools/check-links.py "${markdown_files[@]}"
 
+      - name: Check Markdown style
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' markdown_files < <(find . -type f -name '*.md' -not -path './.git/*' -print0)
+          python3 tools/check-style.py "${markdown_files[@]}"
+
       - name: Validate required-section policy
         run: python3 tools/validate-policy.py examples/ExampleAmigaManual.md --profile amiga-cli --arexx
 
