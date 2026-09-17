@@ -38,12 +38,16 @@ The remaining reproducibility and richer media work is intentionally carried for
 
 The AROS gate provides automated, non-proprietary native compatibility coverage on GitHub Actions. The final M2 gate remains the visible AmigaOS navigation qualification defined in `docs/M2_NATIVE_QUALIFICATION.md`.
 
-## M3 — Consumer integration
+## M3 — Consumer integration — cross-repo qualification pending
 
-- Reusable GitHub Actions workflow/action.
-- Version-pinned consumption by Ploos-AS repositories.
-- Release asset naming convention.
-- Automatic PDF and `.guide` attachment to tagged releases.
+- [x] Reusable GitHub Actions workflow/action.
+- [ ] Version-pinned consumption by Ploos-AS repositories.
+- [x] Release asset naming convention.
+- [x] Automatic PDF and `.guide` attachment to tagged releases.
+- [x] Safe dry-run qualification of the reusable release workflow.
+- [x] Live release-publishing qualification using a temporary prerelease, real asset upload/verification, and automatic cleanup.
+
+The reusable build workflow and the real GitHub release-publishing path are qualified. The remaining M3 gate is an actual Ploos-AS consumer repository using Documentation-Tools through an immutable pinned ref.
 
 ## M4 — Documentation QA
 
