@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240" viewBox="0 0 640 240" role="img" aria-labelledby="title desc">
+  <title id="title">Documentation-Tools output architecture</title>
+  <desc id="desc">Canonical Markdown is transformed into PDF, AmigaGuide, and optional HTML.</desc>
+  <rect x="20" y="80" width="160" height="80" rx="8" fill="none" stroke="black" stroke-width="2"/>
+  <text x="100" y="125" text-anchor="middle" font-family="sans-serif" font-size="20">Markdown</text>
+  <line x1="180" y1="120" x2="260" y2="120" stroke="black" stroke-width="2"/>
+  <polygon points="260,120 248,113 248,127"/>
+  <rect x="270" y="40" width="150" height="50" rx="8" fill="none" stroke="black" stroke-width="2"/>
+  <text x="345" y="71" text-anchor="middle" font-family="sans-serif" font-size="18">PDF</text>
+  <rect x="270" y="100" width="150" height="50" rx="8" fill="none" stroke="black" stroke-width="2"/>
+  <text x="345" y="131" text-anchor="middle" font-family="sans-serif" font-size="18">AmigaGuide</text>
+  <rect x="270" y="160" width="150" height="50" rx="8" fill="none" stroke="black" stroke-width="2"/>
+  <text x="345" y="191" text-anchor="middle" font-family="sans-serif" font-size="18">HTML</text>
+  <line x1="260" y1="120" x2="270" y2="65" stroke="black" stroke-width="2"/>
+  <line x1="260" y1="120" x2="270" y2="125" stroke="black" stroke-width="2"/>
+  <line x1="260" y1="120" x2="270" y2="185" stroke="black" stroke-width="2"/>
+</svg>
