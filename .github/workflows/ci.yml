@@ -23,6 +23,9 @@ jobs:
           mapfile -d '' markdown_files < <(find . -type f -name '*.md' -not -path './.git/*' -print0)
           python3 tools/check-links.py "${markdown_files[@]}"
 
+      - name: Validate required-section policy
+        run: python3 tools/validate-policy.py examples/ExampleAmigaManual.md --profile amiga-cli --arexx
+
       - name: Build and validate M2 AmigaGuide fixture
         run: |
           mkdir -p dist
