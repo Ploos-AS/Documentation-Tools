@@ -39,7 +39,7 @@ Sections that do not apply may be omitted. `ARexx Reference` is recommended for 
 - paragraphs and list text;
 - fenced code blocks, preserved as preformatted text;
 - simple inline Markdown emphasis/code converted to readable plain text;
-- Markdown links to level-2 headings, for example `[Commands](#command-reference)`, converted to native AmigaGuide links;
+- Markdown links to level-2 headings, for example `[Commands](#command-reference-convention)`, converted to native AmigaGuide links;
 - Latin-1 output with unsupported Unicode characters replaced rather than emitting an invalid legacy text stream.
 
 Generated node names use ASCII letters, digits and underscores. Duplicate section names receive deterministic numeric suffixes. Literal `@` characters are escaped as `@@` so ordinary documentation text cannot accidentally become an AmigaGuide command.
