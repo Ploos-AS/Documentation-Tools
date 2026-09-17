@@ -1,0 +1,88 @@
+name: Publish release documentation
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        description: Markdown manual source
+        required: true
+        type: string
+      project:
+        description: Project name used in generated filenames and PDF metadata
+        required: true
+        type: string
+      version:
+        description: Project/manual version
+        required: true
+        type: string
+      amiga:
+        description: Build and publish an AmigaGuide in addition to PDF
+        required: false
+        default: false
+        type: boolean
+      tag:
+        description: Existing GitHub release tag to receive documentation assets
+        required: true
+        type: string
+      output-dir:
+        description: Output directory
+        required: false
+        default: dist/docs
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out consumer repository
+        uses: actions/checkout@v4
+
+      - name: Resolve Documentation-Tools ref
+        id: tool-ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_WORKFLOW_REF##*@}"
+          test -n "$ref"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Check out Documentation-Tools
+        uses: actions/checkout@v4
+        with:
+          repository: Ploos-AS/Documentation-Tools
+          ref: ${{ steps.tool-ref.outputs.ref }}
+          path: .documentation-tools
+
+      - name: Install documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended texlive-latex-extra
+
+      - name: Build release documentation
+        uses: ./.documentation-tools
+        with:
+          source: ${{ inputs.source }}
+          project: ${{ inputs.project }}
+          version: ${{ inputs.version }}
+          amiga: ${{ inputs.amiga }}
+          output-dir: ${{ inputs.output-dir }}
+
+      - name: Verify target release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
+
+      - name: Publish documentation assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          DOC_OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: |
+          set -euo pipefail
+          mapfile -t assets < <(find "$DOC_OUTPUT_DIR" -maxdepth 1 -type f \( -name '*.pdf' -o -name '*.guide' \) -print | sort)
+          test "${#assets[@]}" -ge 1
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
