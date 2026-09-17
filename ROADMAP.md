@@ -20,10 +20,10 @@
 - [x] Headers, footers and page numbering.
 - [x] A4 release-manual defaults.
 - [x] PDF qualification fixture in GitHub Actions.
-- [ ] Pin/encapsulate the complete PDF toolchain for byte-level reproducibility.
+- [x] Deterministic PDF builds under the reproducible-build environment used by CI/release workflows.
 - [ ] Rich image handling qualification.
 
-The remaining reproducibility and richer media work is intentionally carried forward rather than blocking the useful M1 layout baseline.
+Richer media work is intentionally carried forward rather than blocking the useful M1 layout baseline.
 
 ## M2 — AmigaGuide quality — AmigaOS navigation qualification pending
 
@@ -50,13 +50,15 @@ The AROS gate provides automated, non-proprietary native compatibility coverage 
 
 The reusable build and release workflows are qualified, including a real GitHub release upload path and an independent Ploos-AS consumer repository pinned to an immutable Documentation-Tools revision.
 
-## M4 — Documentation QA
+## M4 — Documentation QA — PASS
 
-- Broken-link checking.
-- Required-section policies by project type.
-- Spell/style checks where appropriate.
-- Reproducibility checks.
-- Release manifest/checksums.
+- [x] Broken-link checking.
+- [x] Required-section policies by project type.
+- [x] Deterministic spell/style checks appropriate for technical documentation.
+- [x] Byte-for-byte PDF and AmigaGuide reproducibility checks.
+- [x] Release manifest and SHA-256 checksums.
+
+M4 is qualified in GitHub Actions. Release documentation now includes deterministic integrity metadata in addition to the generated manuals.
 
 ## M5 — Extended formats
 
