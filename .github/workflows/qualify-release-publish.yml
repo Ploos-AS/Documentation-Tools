@@ -1,0 +1,77 @@
+name: Qualify release publishing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create-test-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Define qualification tag
+        id: tag
+        shell: bash
+        run: echo "tag=documentation-tools-release-qualification-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+
+      - name: Create temporary qualification release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Documentation-Tools release qualification" \
+            --notes "Temporary automated M3 release-publishing qualification. Safe to delete after this workflow." \
+            --prerelease
+
+  publish-documentation:
+    needs: create-test-release
+    uses: ./.github/workflows/release-docs.yml
+    with:
+      source: examples/ExampleAmigaManual.md
+      project: ReleasePublishFixture
+      version: 0.0.0-m3
+      amiga: true
+      tag: ${{ needs.create-test-release.outputs.tag }}
+      output-dir: dist/release-publish
+      publish: true
+
+  verify-and-cleanup:
+    if: ${{ always() && needs.create-test-release.result == 'success' }}
+    needs:
+      - create-test-release
+      - publish-documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify published assets
+        if: ${{ needs.publish-documentation.result == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.create-test-release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          assets="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          printf '%s\n' "$assets"
+          grep -Fxq 'ReleasePublishFixture-0.0.0-m3-User-Manual.pdf' <<<"$assets"
+          grep -Fxq 'ReleasePublishFixture-0.0.0-m3.guide' <<<"$assets"
+
+      - name: Delete temporary qualification release and tag
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.create-test-release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+
+      - name: Enforce publishing qualification result
+        if: always()
+        env:
+          PUBLISH_RESULT: ${{ needs.publish-documentation.result }}
+        run: test "$PUBLISH_RESULT" = success
