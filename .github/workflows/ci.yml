@@ -57,10 +57,21 @@ jobs:
           test -s dist/ExampleAmiga-0.0.0-m1-User-Manual.pdf
           pdfinfo dist/ExampleAmiga-0.0.0-m1-User-Manual.pdf | grep -q '^Pages:'
 
-      - name: Rebuild PDF for reproducibility smoke test
+      - name: Qualify reproducible builds
+        shell: bash
         run: |
-          sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/ExampleAmiga-rebuild.pdf ExampleAmiga 0.0.0-m1
-          test -s dist/ExampleAmiga-rebuild.pdf
+          set -euo pipefail
+          mkdir -p dist/repro-a dist/repro-b
+          export SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
+          sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/repro-a/manual.pdf ExampleAmiga 0.0.0-m4
+          python3 tools/build-amigaguide.py examples/ExampleAmigaManual.md dist/repro-a/manual.guide
+          sleep 2
+          sh tools/build-pdf.sh examples/ExampleAmigaManual.md dist/repro-b/manual.pdf ExampleAmiga 0.0.0-m4
+          python3 tools/build-amigaguide.py examples/ExampleAmigaManual.md dist/repro-b/manual.guide
+          cmp dist/repro-a/manual.pdf dist/repro-b/manual.pdf
+          cmp dist/repro-a/manual.guide dist/repro-b/manual.guide
+          sha256sum dist/repro-a/manual.pdf dist/repro-b/manual.pdf
+          sha256sum dist/repro-a/manual.guide dist/repro-b/manual.guide
 
       - name: Qualify reusable action
         id: reusable
