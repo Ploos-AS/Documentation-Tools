@@ -43,6 +43,33 @@ The default artifact contains:
 - `<Project>-<version>-User-Manual.pdf`
 - `<Project>-<version>.guide` when `amiga: true`
 
+## Release asset publishing
+
+`release-docs.yml` builds the documentation and uploads the PDF and optional AmigaGuide directly to an existing GitHub release. The caller must grant `contents: write` permission.
+
+```yaml
+name: Release documentation
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    uses: Ploos-AS/Documentation-Tools/.github/workflows/release-docs.yml@<pinned-ref>
+    with:
+      source: docs/USER_MANUAL.md
+      project: AmiExample
+      version: ${{ github.event.release.tag_name }}
+      amiga: true
+      tag: ${{ github.event.release.tag_name }}
+```
+
+The target release must already exist. Existing documentation assets with the same filenames are replaced, making a rerun idempotent. Other project release assets such as `.lha`, `.readme` and checksums are left untouched.
+
 ## Lower-level composite action
 
 Use the composite action when the consumer needs control over dependency installation, artifact handling or integration into a larger job.
@@ -91,7 +118,3 @@ This produces and validates:
 ## Pinning policy
 
 Consumer repositories should use a release tag or immutable commit SHA. Do not consume `main` in release workflows. A major-version convenience tag may be introduced after the first stable Documentation-Tools release, but immutable pins remain preferred for reproducible releases.
-
-## Release publishing
-
-The reusable workflow and composite action build files only. Consumer release workflows remain responsible for attaching the generated PDF and optional `.guide` to the GitHub release alongside the project's normal release artifacts. Automatic release attachment is a later M3 item.
