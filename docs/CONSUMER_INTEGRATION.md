@@ -1,8 +1,53 @@
 # Consumer integration
 
-Ploos-AS repositories can consume Documentation-Tools as a version-pinned composite GitHub Action.
+Ploos-AS repositories can consume Documentation-Tools either as a version-pinned reusable GitHub Actions workflow or as the lower-level composite action.
 
-## Consumer prerequisites
+## Recommended: reusable workflow
+
+The reusable workflow is the simplest consumer interface because it installs the PDF dependencies, builds the requested formats and uploads the result as a GitHub Actions artifact.
+
+```yaml
+name: Documentation
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  docs:
+    uses: Ploos-AS/Documentation-Tools/.github/workflows/build-docs.yml@<pinned-ref>
+    with:
+      source: docs/USER_MANUAL.md
+      project: ExampleProject
+      version: 1.0.0
+```
+
+For an Amiga project:
+
+```yaml
+jobs:
+  docs:
+    uses: Ploos-AS/Documentation-Tools/.github/workflows/build-docs.yml@<pinned-ref>
+    with:
+      source: docs/USER_MANUAL.md
+      project: AmiExample
+      version: 1.0.0
+      amiga: true
+      artifact-name: AmiExample-documentation
+```
+
+The workflow preserves the caller's Documentation-Tools ref when it checks out the tool repository, so a consumer pinned to a release tag or commit SHA builds with that same revision.
+
+The default artifact contains:
+
+- `<Project>-<version>-User-Manual.pdf`
+- `<Project>-<version>.guide` when `amiga: true`
+
+## Lower-level composite action
+
+Use the composite action when the consumer needs control over dependency installation, artifact handling or integration into a larger job.
+
+### Consumer prerequisites
 
 The runner must provide Python 3, Pandoc and a LaTeX engine (`pdflatex`). On `ubuntu-latest`, install the PDF dependencies before invoking the action:
 
@@ -13,7 +58,7 @@ The runner must provide Python 3, Pandoc and a LaTeX engine (`pdflatex`). On `ub
     sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended texlive-latex-extra
 ```
 
-## Generic project
+### Generic project
 
 ```yaml
 - uses: Ploos-AS/Documentation-Tools@<pinned-ref>
@@ -27,7 +72,7 @@ This produces:
 
 - `dist/ExampleProject-1.0.0-User-Manual.pdf`
 
-## Amiga project
+### Amiga project
 
 ```yaml
 - uses: Ploos-AS/Documentation-Tools@<pinned-ref>
@@ -49,4 +94,4 @@ Consumer repositories should use a release tag or immutable commit SHA. Do not c
 
 ## Release publishing
 
-The action builds files only. Consumer release workflows remain responsible for attaching the generated PDF and optional `.guide` to the GitHub release alongside the project's normal release artifacts. A reusable release-publishing workflow is a later M3 item.
+The reusable workflow and composite action build files only. Consumer release workflows remain responsible for attaching the generated PDF and optional `.guide` to the GitHub release alongside the project's normal release artifacts. Automatic release attachment is a later M3 item.
