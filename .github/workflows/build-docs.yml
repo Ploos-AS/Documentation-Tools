@@ -41,11 +41,20 @@ jobs:
       - name: Check out consumer repository
         uses: actions/checkout@v4
 
+      - name: Resolve Documentation-Tools ref
+        id: tool-ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_WORKFLOW_REF##*@}"
+          test -n "$ref"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
       - name: Check out Documentation-Tools
         uses: actions/checkout@v4
         with:
           repository: Ploos-AS/Documentation-Tools
-          ref: ${{ github.workflow_ref }}
+          ref: ${{ steps.tool-ref.outputs.ref }}
           path: .documentation-tools
 
       - name: Install documentation dependencies
