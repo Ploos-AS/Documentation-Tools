@@ -6,6 +6,19 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 
+% Keep pdfTeX output byte-reproducible when SOURCE_DATE_EPOCH is supplied.
+% The trailer ID is otherwise derived from run-specific state even when the
+% creation timestamp itself is fixed.
+\ifdefined\pdfinfoomitdate
+  \pdfinfoomitdate=1
+\fi
+\ifdefined\pdftrailerid
+  \pdftrailerid{}
+\fi
+\ifdefined\pdfsuppressptexinfo
+  \pdfsuppressptexinfo=15
+\fi
+
 \definecolor{PloosDark}{HTML}{20252B}
 \hypersetup{colorlinks=true,linkcolor=PloosDark,urlcolor=PloosDark}
 
