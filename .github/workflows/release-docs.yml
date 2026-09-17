@@ -75,14 +75,34 @@ jobs:
           amiga: ${{ inputs.amiga }}
           output-dir: ${{ inputs.output-dir }}
 
+      - name: Build release manifest and checksums
+        env:
+          DOC_OUTPUT_DIR: ${{ inputs.output-dir }}
+          DOC_SOURCE: ${{ inputs.source }}
+          DOC_PROJECT: ${{ inputs.project }}
+          DOC_VERSION: ${{ inputs.version }}
+          DOC_TOOL_REF: ${{ steps.tool-ref.outputs.ref }}
+        run: |
+          set -euo pipefail
+          python3 .documentation-tools/tools/build-manifest.py \
+            --project "$DOC_PROJECT" \
+            --version "$DOC_VERSION" \
+            --source "$DOC_SOURCE" \
+            --output-dir "$DOC_OUTPUT_DIR" \
+            --tool-ref "$DOC_TOOL_REF"
+          (cd "$DOC_OUTPUT_DIR" && sha256sum --check SHA256SUMS)
+          python3 -m json.tool "$DOC_OUTPUT_DIR/documentation-manifest.json" >/dev/null
+
       - name: Collect release assets
         id: assets
         env:
           DOC_OUTPUT_DIR: ${{ inputs.output-dir }}
         run: |
           set -euo pipefail
-          mapfile -t assets < <(find "$DOC_OUTPUT_DIR" -maxdepth 1 -type f \( -name '*.pdf' -o -name '*.guide' \) -print | sort)
-          test "${#assets[@]}" -ge 1
+          mapfile -t assets < <(find "$DOC_OUTPUT_DIR" -maxdepth 1 -type f \( -name '*.pdf' -o -name '*.guide' -o -name 'SHA256SUMS' -o -name 'documentation-manifest.json' \) -print | sort)
+          test "${#assets[@]}" -ge 3
+          test -f "$DOC_OUTPUT_DIR/SHA256SUMS"
+          test -f "$DOC_OUTPUT_DIR/documentation-manifest.json"
           printf '%s\n' "${assets[@]}" > "$RUNNER_TEMP/documentation-release-assets.txt"
           cat "$RUNNER_TEMP/documentation-release-assets.txt"
 
@@ -111,4 +131,5 @@ jobs:
           set -euo pipefail
           echo "publish=false"
           echo "tag=$RELEASE_TAG"
+          echo "Manifest and checksums were generated and verified."
           echo "No GitHub release was queried or modified."
