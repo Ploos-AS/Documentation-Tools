@@ -1,0 +1,35 @@
+name: Qualify release documentation workflow
+
+on:
+  push:
+    paths:
+      - '.github/workflows/release-docs.yml'
+      - '.github/workflows/qualify-release-docs.yml'
+      - 'action.yml'
+      - 'tools/**'
+      - 'templates/**'
+      - 'examples/ExampleAmigaManual.md'
+  pull_request:
+    paths:
+      - '.github/workflows/release-docs.yml'
+      - '.github/workflows/qualify-release-docs.yml'
+      - 'action.yml'
+      - 'tools/**'
+      - 'templates/**'
+      - 'examples/ExampleAmigaManual.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-workflow:
+    uses: ./.github/workflows/release-docs.yml
+    with:
+      source: examples/ExampleAmigaManual.md
+      project: ReleaseWorkflowFixture
+      version: 0.0.0-m3
+      amiga: true
+      tag: qualification-do-not-publish
+      output-dir: dist/release-workflow
+      publish: false
