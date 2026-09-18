@@ -4,6 +4,19 @@ Shared documentation toolchain for Ploos-AS projects.
 
 Markdown is the canonical source. Documentation-Tools turns it into release-ready documentation without requiring a second editable document format.
 
+## Ploos-AS documentation licensing standard
+
+Original Ploos-AS documentation, course material, tutorials, exercises, illustrations, and other educational content should use **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)** by default, unless inherited or third-party licensing requires otherwise.
+
+This complements the wider Ploos-AS licensing standard:
+
+- software, ROM and firmware: MIT by default;
+- hardware, PCB designs and HDL/gateware: CERN-OHL-P-2.0;
+- documentation and educational material: CC BY-SA 4.0;
+- inherited/third-party material: retain and comply with the applicable licence.
+
+Mixed repositories should clearly identify which licence applies to each component or directory.
+
 ## Outputs
 
 - **PDF** — primary user manual for modern systems and release distribution.
