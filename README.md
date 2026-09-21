@@ -45,6 +45,17 @@ Build an AmigaGuide:
 python3 tools/build-amigaguide.py examples/ExampleAmigaManual.md dist/ExampleAmiga.guide
 ```
 
+Prepare the redistributable Work volume for the human-visible M2 AmigaOS gate:
+
+```sh
+python3 tools/prepare-m2-native-qualification.py --amiga-runtime ../amiga-runtime
+```
+
+The complete FS-UAE launch, checklist, evidence-recording procedure, and strict
+manual PASS rule are in [docs/M2_NATIVE_QUALIFICATION.md](docs/M2_NATIVE_QUALIFICATION.md).
+M2 remains pending until that visible navigation qualification is actually run
+and every item passes.
+
 Build optional standalone HTML:
 
 ```sh
