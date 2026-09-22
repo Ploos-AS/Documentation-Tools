@@ -6,7 +6,7 @@ Version: 0.0.0-m2
 
 ExampleAmiga demonstrates the Documentation-Tools source format.
 
-Use the [Command Reference](#command-reference) for command syntax. The literal address `user@example.invalid` exercises AmigaGuide `@` escaping.
+Use the [Command Reference](#command-reference) for command syntax. The literal address [user@example.invalid](mailto:user@example.invalid) exercises AmigaGuide 34.x literal `@` compatibility.
 
 ![Documentation-Tools output architecture](assets/architecture.svg)
 

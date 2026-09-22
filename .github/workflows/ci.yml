@@ -35,6 +35,9 @@ jobs:
       - name: Validate required-section policy
         run: python3 tools/validate-policy.py examples/ExampleAmigaManual.md --profile amiga-cli --arexx
 
+      - name: Run AmigaGuide generator regression tests
+        run: python3 -m unittest discover -s tests -v
+
       - name: Build and validate M2 AmigaGuide fixture
         run: |
           mkdir -p dist
