@@ -25,7 +25,7 @@
 
 M1 is fully qualified in GitHub Actions, including deterministic PDF generation and local rich-image assets. The same image fixture also exercises HTML rendering and readable AmigaGuide alternative-text fallback.
 
-## M2 — AmigaGuide quality — AmigaOS navigation qualification pending
+## M2 — AmigaGuide quality — PASS
 
 - [x] Richer deterministic node generation and navigation.
 - [x] Internal Markdown links and cross references.
@@ -34,9 +34,9 @@ M1 is fully qualified in GitHub Actions, including deterministic PDF generation 
 - [x] Dependency-free structural AmigaGuide validator.
 - [x] GitHub Actions structural qualification.
 - [x] Automated native AROS MultiView compatibility gate.
-- [ ] Visible AmigaOS 2.04+ navigation qualification.
+- [x] Visible AmigaOS 2.04+ navigation qualification.
 
-The AROS gate provides automated, non-proprietary native compatibility coverage on GitHub Actions. The final M2 gate remains the visible AmigaOS navigation qualification defined in `docs/M2_NATIVE_QUALIFICATION.md`.
+The AROS gate provides automated, non-proprietary native compatibility coverage on GitHub Actions. The final visible gate passed on FS-UAE 3.2.35 with an A500+/68000 profile, Kickstart 2.04 revision 37.175, and AmigaGuide 34.3. All 13 checks passed for Documentation-Tools source revision `21865b1e4286b3bb96b7b7c0c6ac63a7b7002957` and guide SHA-256 `383756b99bd63a170bfdde90287a269bb0a007f2a67054f44d08a0b6d7acd8f6`. The repeatable procedure and evidence policy remain defined in `docs/M2_NATIVE_QUALIFICATION.md`.
 
 ## M3 — Consumer integration — PASS
 

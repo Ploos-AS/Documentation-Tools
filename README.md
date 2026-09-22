@@ -53,8 +53,9 @@ python3 tools/prepare-m2-native-qualification.py --amiga-runtime ../amiga-runtim
 
 The complete FS-UAE launch, checklist, evidence-recording procedure, and strict
 manual PASS rule are in [docs/M2_NATIVE_QUALIFICATION.md](docs/M2_NATIVE_QUALIFICATION.md).
-M2 remains pending until that visible navigation qualification is actually run
-and every item passes.
+M2 passed its visible AmigaOS 2.04 navigation qualification on 2026-09-22.
+The procedure remains the required gate when changes affect generated
+AmigaGuide output.
 
 Build optional standalone HTML:
 
@@ -70,7 +71,7 @@ See [docs/FORMAT.md](docs/FORMAT.md), [docs/CONSUMER_INTEGRATION.md](docs/CONSUM
 
 - **M0 — Foundation — PASS**
 - **M1 — PDF quality — PASS**
-- **M2 — AmigaGuide quality — AmigaOS navigation qualification pending**
+- **M2 — AmigaGuide quality — PASS**
 - **M3 — Consumer integration — PASS**
 - **M4 — Documentation QA — PASS**
 - **M5 — Extended formats — HTML PASS**

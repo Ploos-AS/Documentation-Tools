@@ -1,7 +1,7 @@
 # M2 native AmigaGuide qualification
 
-Status: PENDING — automated AROS compatibility gate PASS; visible AmigaOS
-navigation gate pending
+Status: PASS — automated AROS compatibility gate PASS; visible AmigaOS
+navigation gate PASS
 
 This is the final M2 qualification procedure. It combines the existing
 automated native AROS compatibility gate with a human-visible AmigaOS gate.
@@ -151,6 +151,26 @@ failed item makes the visible gate FAIL. Passing every item makes that recorded
 visible gate PASS, but the tool never edits `README.md` or `ROADMAP.md` and does
 not declare the M2 milestone complete.
 
+## Qualified M2 result
+
+The final visible gate passed on 2026-09-22 with all 13 checklist items marked
+PASS. The qualified inputs and runtime were:
+
+- Documentation-Tools source revision: `21865b1e4286b3bb96b7b7c0c6ac63a7b7002957`;
+- amiga-runtime revision: `327292c45d9440127b31ec9e289ad0416e26d781`;
+- `ExampleAmiga.guide` SHA-256: `383756b99bd63a170bfdde90287a269bb0a007f2a67054f44d08a0b6d7acd8f6`;
+- FS-UAE 3.2.35 using the `a500plus` 68000 profile with 1 MiB Chip RAM,
+  1 MiB Slow RAM, and no Fast RAM;
+- AmigaOS 2.04 / Kickstart revision 37.175;
+- native AmigaGuide 34.3 viewer;
+- generated `Work:` directory mounted read-only.
+
+The machine-readable result remains in the generated local qualification bundle
+at `dist/m2-native-qualification/Work/qualification-result.json`. Screenshots
+are retained separately outside the repository and are not packaged with the
+bundle. Kickstart, Workbench, AmigaOS, viewer binaries, libraries, and other
+licensed system files are never copied into qualification output or evidence.
+
 ## M2 PASS rule
 
 M2 may be changed to PASS only after a person reviews evidence showing that:
@@ -160,6 +180,10 @@ M2 may be changed to PASS only after a person reviews evidence showing that:
 - the visible result refers to the same Documentation-Tools source revision and
   guide SHA-256; and
 - every visible AmigaOS checklist item is PASS.
+
+The qualified result above satisfied this rule. Future changes that alter the
+generated AmigaGuide must repeat the gate against the new source revision and
+guide digest rather than reusing these observations.
 
 If any item fails, retain the FAIL record, keep M2 pending, fix the generator or
 fixture, rerun CI, rebuild the bundle, and repeat the visible gate. Screenshots
