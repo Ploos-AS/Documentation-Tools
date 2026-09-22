@@ -6,8 +6,17 @@ import re
 import sys
 
 
-def escape_text(text: str) -> str:
-    return text.replace("@", "@@")
+def literal_text(text: str) -> str:
+    """Return literal text that is safe in the generated V34-compatible subset."""
+    if "@{" in text:
+        raise ValueError("literal '@{' is not supported by AmigaGuide 34.x")
+    return text
+
+
+def body_text(text: str) -> str:
+    """Keep body text from being parsed as a line-oriented AmigaGuide command."""
+    text = literal_text(text)
+    return f" {text}" if text.startswith("@") else text
 
 
 def strip_inline(text: str) -> str:
@@ -36,23 +45,32 @@ def unique_node(title: str, used: set[str]) -> str:
 def inline(text: str, anchors: dict[str, str]) -> str:
     text = strip_inline(text)
 
-    def link(match: re.Match[str]) -> str:
+    def link(match: re.Match[str]) -> tuple[str, bool]:
         label, target = match.group(1), match.group(2)
         if target.startswith("#"):
             key = target[1:].lower()
             node = anchors.get(key)
             if node:
-                return f'@{{"{escape_text(label)}" link {node}}}'
-        return escape_text(label)
+                return f'@{{"{literal_text(label)}" link {node}}}', True
+        return literal_text(label), False
 
     parts: list[str] = []
     pos = 0
+    first_part_is_generated = False
     for match in re.finditer(r"\[([^]]+)\]\(([^)]+)\)", text):
-        parts.append(escape_text(text[pos:match.start()]))
-        parts.append(link(match))
+        literal = literal_text(text[pos:match.start()])
+        if literal:
+            parts.append(literal)
+        rendered_link, generated = link(match)
+        if not parts:
+            first_part_is_generated = generated
+        parts.append(rendered_link)
         pos = match.end()
-    parts.append(escape_text(text[pos:]))
-    return "".join(parts)
+    parts.append(literal_text(text[pos:]))
+    rendered = "".join(parts)
+    if rendered.startswith("@") and not first_part_is_generated:
+        rendered = f" {rendered}"
+    return rendered
 
 
 def convert(text: str) -> str:
@@ -88,21 +106,26 @@ def convert(text: str) -> str:
         anchors[slug(name).lower()] = ident
         anchors[re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")] = ident
 
-    safe_title = escape_text(title)
-    out = [f'@database "{safe_title}"', f'@node Main "{safe_title}"', safe_title, ""]
+    safe_title = literal_text(title)
+    out = [
+        f'@database "{safe_title}"',
+        f'@node Main "{safe_title}"',
+        body_text(title),
+        "",
+    ]
     for ident, name, _ in sections:
-        out.append(f'@{{"{escape_text(name)}" link {ident}}}')
+        out.append(f'@{{"{literal_text(name)}" link {ident}}}')
     out.extend(["", "@endnode", ""])
 
     for index, (ident, name, body) in enumerate(sections):
-        out.append(f'@node {ident} "{escape_text(name)}"')
+        out.append(f'@node {ident} "{literal_text(name)}"')
         nav = []
         if index > 0:
             nav.append(f'@{{"Prev" link {sections[index - 1][0]}}}')
         nav.append('@{"Contents" link Main}')
         if index + 1 < len(sections):
             nav.append(f'@{{"Next" link {sections[index + 1][0]}}}')
-        out.extend(["  ".join(nav), "", escape_text(name), ""])
+        out.extend(["  ".join(nav), "", body_text(name), ""])
 
         code = False
         for line in body:
@@ -110,9 +133,9 @@ def convert(text: str) -> str:
                 code = not code
                 continue
             if line.startswith("### ") and not code:
-                out.extend(["", escape_text(strip_inline(line[4:].strip()).upper()), ""])
+                out.extend(["", body_text(strip_inline(line[4:].strip()).upper()), ""])
             elif code:
-                out.append(escape_text(line))
+                out.append(body_text(line))
             else:
                 out.append(inline(line, anchors))
         out.extend(["", "@endnode", ""])

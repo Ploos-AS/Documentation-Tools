@@ -42,7 +42,7 @@ Sections that do not apply may be omitted. `ARexx Reference` is recommended for 
 - Markdown links to level-2 headings, for example `[Commands](#command-reference-convention)`, converted to native AmigaGuide links;
 - Latin-1 output with unsupported Unicode characters replaced rather than emitting an invalid legacy text stream.
 
-Generated node names use ASCII letters, digits and underscores. Duplicate section names receive deterministic numeric suffixes. Literal `@` characters are escaped as `@@` so ordinary documentation text cannot accidentally become an AmigaGuide command.
+Generated node names use ASCII letters, digits and underscores. Duplicate section names receive deterministic numeric suffixes. Literal `@` characters remain single characters in titles, labels, paragraphs, and preformatted text because AmigaGuide 34.x renders `@@` as two visible characters. Generated directives and link attributes are emitted separately from literal text. A literal-text line beginning with `@` receives one leading space so AmigaGuide does not parse it as a line-oriented command. The reserved `@{` attribute opener is rejected in literal Markdown text because AmigaGuide 34.x has no compatible transparent escape for it; use words such as “at sign followed by an opening brace” instead.
 
 ## Command reference convention
 

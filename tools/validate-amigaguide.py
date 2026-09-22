@@ -30,7 +30,14 @@ def main() -> None:
 
     nodes: list[str] = []
     depth = 0
-    for line in lines:
+    for lineno, line in enumerate(lines, 1):
+        if line.startswith("@") and not (
+            line.startswith('@database "')
+            or line.startswith("@node ")
+            or line == "@endnode"
+            or line.startswith('@{"')
+        ):
+            fail(f"unsupported command-looking line {lineno}: {line}")
         match = re.match(r"^@node\s+(\S+)\s+", line)
         if match:
             if depth:

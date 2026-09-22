@@ -35,6 +35,9 @@ jobs:
       - name: Validate required-section policy
         run: python3 tools/validate-policy.py examples/ExampleAmigaManual.md --profile amiga-cli --arexx
 
+      - name: Run AmigaGuide generator regression tests
+        run: python3 -m unittest discover -s tests -v
+
       - name: Build and validate M2 AmigaGuide fixture
         run: |
           mkdir -p dist
@@ -45,6 +48,34 @@ jobs:
           grep -q '^@node Main ' dist/ExampleAmiga.guide
           grep -q '@{"Contents" link Main}' dist/ExampleAmiga.guide
           grep -q 'Documentation-Tools output architecture' dist/ExampleAmiga.guide
+
+      - name: Check out the standard Amiga runtime
+        uses: actions/checkout@v4
+        with:
+          repository: Ploos-AS/amiga-runtime
+          ref: 327292c45d9440127b31ec9e289ad0416e26d781
+          path: .ci/amiga-runtime
+
+      - name: Prepare pending M2 native qualification bundle
+        run: |
+          python3 tools/prepare-m2-native-qualification.py --amiga-runtime .ci/amiga-runtime
+          work=dist/m2-native-qualification/Work
+          test -s "$work/ExampleAmiga.guide"
+          test -s "$work/qualification-result.json"
+          test -s "$work/QUALIFICATION-CHECKLIST.md"
+          (cd "$work" && sha256sum --check SHA256SUMS)
+          python3 - "$work/qualification-result.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          result = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert result["status"] == "PENDING"
+          assert result["runtime"]["profile"] == "a500plus"
+          assert result["source"]["amiga_runtime_commit"] == "327292c45d9440127b31ec9e289ad0416e26d781"
+          assert len(result["qualification"]["results"]) == 13
+          assert {item["status"] for item in result["qualification"]["results"]} == {"PENDING"}
+          PY
 
       - name: Syntax-check Python tools
         run: python3 -m py_compile tools/*.py
